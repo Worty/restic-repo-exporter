@@ -1,5 +1,22 @@
 # Restic Repo Exporter
 
+## Install
+
+### Pre-Compiled binaries
+Checkout [Releases](https://github.com/Worty/restic-repo-exporter/releases)
+
+### with Go
+```
+go install github.com/worty/restic-repo-exporter/cmd/restic-repo-exporter@latest
+```
+
+### or build yourself
+```
+CGO_ENABLED='0' go build -o ./output/restic-repo-exporter ./cmd/restic-repo-exporter
+```
+
+## Metrics
+
 ```
 RESTIC_PASSWORD="abc123" ./restic-repo-exporter --repo-path ./testdata
 curl localhost:9100/metrics
