@@ -1,8 +1,10 @@
 package resticrepoexporter
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand/v2"
 	"os"
 	"os/exec"
 	"slices"
@@ -10,10 +12,11 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
-	scrapeErr = prometheus.NewCounterVec(
+	scrapeErr = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "restic",
 			Subsystem: "repo",
@@ -22,87 +25,108 @@ var (
 		},
 		[]string{"repo", "action"},
 	)
-	scrapeDuration = prometheus.NewHistogramVec(
+	scrapeDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "restic",
 			Subsystem: "repo",
 			Name:      "scrape_duration_seconds",
-			Help:      "Duration of the last scrape of the restic repository",
-			Buckets:   prometheus.ExponentialBucketsRange(0.1, 15, 10),
 		},
 		[]string{"repo"},
 	)
-	numSnapshotsDesc = prometheus.NewDesc(
-		prometheus.BuildFQName("restic", "repo", "number_of_snapshots"),
-		"Total number of snapshots in the repository by hostname and tag",
+	numSnapshots = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: prometheus.BuildFQName("restic", "repo", "number_of_snapshots"),
+			Help: "Total number of snapshots in the repository by hostname and tag",
+		},
 		[]string{"repo", "hostname", "tag"},
-		nil,
 	)
-	lastSnapshotTimestampDesc = prometheus.NewDesc(
-		prometheus.BuildFQName("restic", "repo", "last_snapshot_timestamp"),
-		"Timestamp of the last snapshot in the repository by hostname and tag",
+
+	lastSnapshotTimestamp = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: prometheus.BuildFQName("restic", "repo", "last_snapshot_timestamp"),
+			Help: "Timestamp of the last snapshot in the repository by hostname and tag",
+		},
 		[]string{"repo", "hostname", "tag"},
-		nil,
 	)
-	numRepoErrorsDesc = prometheus.NewDesc(
-		prometheus.BuildFQName("restic", "repo", "num_errors"),
-		"Total number of errors found in the repository during check",
+
+	numRepoErrors = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: prometheus.BuildFQName("restic", "repo", "num_errors"),
+			Help: "Total number of errors found in the repository during check",
+		},
 		[]string{"repo"},
-		nil,
 	)
-	suggestRepairIndexDesc = prometheus.NewDesc(
-		prometheus.BuildFQName("restic", "repo", "suggest_repair_index"),
-		"Whether the repository suggests repairing the index",
+
+	suggestRepairIndex = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: prometheus.BuildFQName("restic", "repo", "suggest_repair_index"),
+			Help: "Whether the repository suggests repairing the index",
+		},
 		[]string{"repo"},
-		nil,
 	)
-	suggestPruneIndexDesc = prometheus.NewDesc(
-		prometheus.BuildFQName("restic", "repo", "suggest_prune"),
-		"Whether the repository suggests pruning",
+
+	suggestPrune = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: prometheus.BuildFQName("restic", "repo", "suggest_prune"),
+			Help: "Whether the repository suggests pruning",
+		},
 		[]string{"repo"},
-		nil,
 	)
-	totalRepoSizeDesc = prometheus.NewDesc(
-		prometheus.BuildFQName("restic", "repo", "total_size_bytes"),
-		"Total size of the repository in bytes",
+
+	totalRepoSize = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: prometheus.BuildFQName("restic", "repo", "total_size_bytes"),
+			Help: "Total size of the repository in bytes",
+		},
 		[]string{"repo"},
-		nil,
 	)
-	totalUncompressedSizeDesc = prometheus.NewDesc(
-		prometheus.BuildFQName("restic", "repo", "total_uncompressed_size_bytes"),
-		"Total uncompressed size of the repository in bytes",
+
+	totalUncompressedSize = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: prometheus.BuildFQName("restic", "repo", "total_uncompressed_size_bytes"),
+			Help: "Total uncompressed size of the repository in bytes",
+		},
 		[]string{"repo"},
-		nil,
 	)
-	compressionRatioDesc = prometheus.NewDesc(
-		prometheus.BuildFQName("restic", "repo", "compression_ratio"),
-		"Compression ratio of the repository",
+
+	compressionRatio = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: prometheus.BuildFQName("restic", "repo", "compression_ratio"),
+			Help: "Compression ratio of the repository",
+		},
 		[]string{"repo"},
-		nil,
 	)
-	compressionProgressDesc = prometheus.NewDesc(
-		prometheus.BuildFQName("restic", "repo", "compression_progress_percent"),
-		"Compression progress of the repository in percent",
+
+	compressionProgress = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: prometheus.BuildFQName("restic", "repo", "compression_progress_percent"),
+			Help: "Compression progress of the repository in percent",
+		},
 		[]string{"repo"},
-		nil,
 	)
-	compressionSpaceSavingDesc = prometheus.NewDesc(
-		prometheus.BuildFQName("restic", "repo", "compression_space_saving_percent"),
-		"Compression space saving of the repository in percent",
+
+	compressionSpaceSaving = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: prometheus.BuildFQName("restic", "repo", "compression_space_saving_percent"),
+			Help: "Compression space saving of the repository in percent",
+		},
 		[]string{"repo"},
-		nil,
 	)
-	totalBlobCountDesc = prometheus.NewDesc(
-		prometheus.BuildFQName("restic", "repo", "total_blob_count"),
-		"Total number of blobs in the repository",
+
+	totalBlobCount = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: prometheus.BuildFQName("restic", "repo", "total_blob_count"),
+			Help: "Total number of blobs in the repository",
+		},
 		[]string{"repo"},
-		nil,
 	)
-	totalSnapshotsCountDesc = prometheus.NewDesc(
-		prometheus.BuildFQName("restic", "repo", "total_snapshots_count"),
-		"Total number of snapshots in the repository",
+
+	totalSnapshotsCount = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: prometheus.BuildFQName("restic", "repo", "total_snapshots_count"),
+			Help: "Total number of snapshots in the repository",
+		},
 		[]string{"repo"},
-		nil,
 	)
 )
 
@@ -112,50 +136,51 @@ type Repo struct {
 	Password   string
 }
 
-func (r *Repo) Describe(ch chan<- *prometheus.Desc) {
-	ch <- numSnapshotsDesc
-	ch <- numRepoErrorsDesc
-	ch <- suggestRepairIndexDesc
-	ch <- suggestPruneIndexDesc
-}
+func (r *Repo) Scrape(ctx context.Context) {
+	for {
+		timeStart := time.Now()
+		defer func() {
+			scrapeDuration.WithLabelValues(r.Name).Observe(time.Since(timeStart).Seconds())
+		}()
 
-func (r *Repo) Collect(ch chan<- prometheus.Metric) {
-	timeStart := time.Now()
-	defer func() {
-		scrapeDuration.WithLabelValues(r.Name).Observe(time.Since(timeStart).Seconds())
-	}()
+		if check, err := r.Check(); err == nil {
+			numRepoErrors.WithLabelValues(r.Name).Set(float64(check.NumErrors))
+			suggestPrune.WithLabelValues(r.Name).Set(boolToFloat(check.SuggestPrune))
+			suggestRepairIndex.WithLabelValues(r.Name).Set(boolToFloat(check.SuggestRepairIndex))
+		} else {
+			scrapeErr.WithLabelValues(r.Name, "check").Inc()
+			return
+		}
 
-	if check, err := r.Check(); err == nil {
-		ch <- prometheus.MustNewConstMetric(numRepoErrorsDesc, prometheus.GaugeValue, float64(check.NumErrors), r.Name)
-		ch <- prometheus.MustNewConstMetric(suggestRepairIndexDesc, prometheus.GaugeValue, boolToFloat(check.SuggestRepairIndex), r.Name)
-		ch <- prometheus.MustNewConstMetric(suggestPruneIndexDesc, prometheus.GaugeValue, boolToFloat(check.SuggestPrune), r.Name)
-	} else {
-		scrapeErr.WithLabelValues(r.Name, "check").Inc()
-		return
-	}
+		rawStats, err := r.RawStats(nil)
+		if err != nil {
+			scrapeErr.WithLabelValues(r.Name, "raw-stats").Inc()
+			return
+		}
+		totalRepoSize.WithLabelValues(r.Name).Set(float64(rawStats.TotalSize))
+		totalUncompressedSize.WithLabelValues(r.Name).Set(float64(rawStats.TotalUncompressedSize))
+		compressionRatio.WithLabelValues(r.Name).Set(rawStats.CompressionRatio)
+		compressionProgress.WithLabelValues(r.Name).Set(float64(rawStats.CompressionProgress) / 100.0)
+		compressionSpaceSaving.WithLabelValues(r.Name).Set(float64(rawStats.CompressionSpaceSaving) / 100.0)
+		totalBlobCount.WithLabelValues(r.Name).Set(float64(rawStats.TotalBlobCount))
+		totalSnapshotsCount.WithLabelValues(r.Name).Set(float64(rawStats.SnapshotsCount))
 
-	rawStats, err := r.RawStats(nil)
-	if err != nil {
-		scrapeErr.WithLabelValues(r.Name, "raw-stats").Inc()
-		return
-	}
-	ch <- prometheus.MustNewConstMetric(totalRepoSizeDesc, prometheus.GaugeValue, float64(rawStats.TotalSize), r.Name)
-	ch <- prometheus.MustNewConstMetric(totalUncompressedSizeDesc, prometheus.GaugeValue, float64(rawStats.TotalUncompressedSize), r.Name)
-	ch <- prometheus.MustNewConstMetric(compressionRatioDesc, prometheus.GaugeValue, rawStats.CompressionRatio, r.Name)
-	ch <- prometheus.MustNewConstMetric(compressionProgressDesc, prometheus.GaugeValue, float64(rawStats.CompressionProgress)/100.0, r.Name)
-	ch <- prometheus.MustNewConstMetric(compressionSpaceSavingDesc, prometheus.GaugeValue, (rawStats.CompressionSpaceSaving)/100.0, r.Name)
-	ch <- prometheus.MustNewConstMetric(totalBlobCountDesc, prometheus.GaugeValue, float64(rawStats.TotalBlobCount), r.Name)
-	ch <- prometheus.MustNewConstMetric(totalSnapshotsCountDesc, prometheus.GaugeValue, float64(rawStats.SnapshotsCount), r.Name)
+		snapshots, err := r.Snapshots("host,tags")
+		if err != nil {
+			scrapeErr.WithLabelValues(r.Name, "latest-snapshots").Inc()
+			return
+		}
+		for _, group := range snapshots {
+			tags := strings.Join(group.GroupKey.Tags, "_")
+			numSnapshots.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set(float64(len(group.Snapshots)))
+			lastSnapshotTimestamp.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set(float64(group.Snapshots[0].Time.Unix()))
+		}
 
-	snapshots, err := r.LatestSnapshots("host,tags")
-	if err != nil {
-		scrapeErr.WithLabelValues(r.Name, "latest-snapshots").Inc()
-		return
-	}
-	for _, group := range snapshots {
-		for _, snapshot := range group.Snapshots {
-			ch <- prometheus.MustNewConstMetric(numSnapshotsDesc, prometheus.GaugeValue, float64(len(group.Snapshots)), r.Name, group.GroupKey.Hostname, strings.Join(group.GroupKey.Tags, "_"))
-			ch <- prometheus.MustNewConstMetric(lastSnapshotTimestampDesc, prometheus.GaugeValue, float64(snapshot.Time.Unix()), r.Name, group.GroupKey.Hostname, strings.Join(group.GroupKey.Tags, "_"))
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Duration(rand.IntN(300)) + 5*time.Minute):
+
 		}
 	}
 }
@@ -183,10 +208,9 @@ func (r *Repo) RawStats(tags []string) (stats rawDataStats, err error) {
 }
 
 func (r *Repo) exec(args ...string) ([]byte, error) {
-	cmd := exec.Command("restic", "--quiet", "--no-lock", "--json")
+	cmd := exec.Command("restic", "-r", r.Repository, "--quiet", "--no-lock", "--json")
 	cmd.Args = append(cmd.Args, args...)
 	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "RESTIC_REPOSITORY="+r.Repository)
 	cmd.Env = append(cmd.Env, "RESTIC_PASSWORD="+r.Password)
 
 	out, err := cmd.CombinedOutput()
@@ -272,13 +296,19 @@ type Summary struct {
 	TotalBytesProcessed int       `json:"total_bytes_processed"`
 }
 
-func (r *Repo) LatestSnapshots(groupBy string) (gr []GroupedSnapshot, err error) {
-	output, err := r.exec("snapshots", "--latest=1", "--group-by="+groupBy)
+func (r *Repo) Snapshots(groupBy string) (gr []GroupedSnapshot, err error) {
+	output, err := r.exec("snapshots", "--group-by="+groupBy)
 	if err != nil {
 		return []GroupedSnapshot{}, err
 	}
 
-	return gr, json.Unmarshal(output, &gr)
+	if err := json.Unmarshal(output, &gr); err != nil {
+		return gr, err
+	}
+
+	SortGroupedSnapshots(gr)
+
+	return gr, nil
 }
 
 type CheckResult struct {
