@@ -17,6 +17,7 @@ import (
 func main() {
 	listenAddr := flag.String("listen-address", ":9100", "The address to listen on for HTTP requests.")
 	repoPath := flag.String("repo-path", "", "Path to the directory containing restic repositories.")
+	scrapeInterval := flag.Int64("scrape-interval", 300, "Base scrape interval in seconds. A random interval of the same amount will be added on top.")
 	flag.Parse()
 
 	if *repoPath == "" {
@@ -26,7 +27,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, os.Kill)
 	defer cancel()
 
-	resticrepoexporter.NewExporter(ctx, *repoPath)
+	resticrepoexporter.NewExporter(ctx, *repoPath, *scrapeInterval)
 
 	// Create a new ServeMux for custom routing
 	mux := http.NewServeMux()
