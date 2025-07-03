@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand/v2"
 	"os"
 	"os/exec"
@@ -132,12 +133,18 @@ type Repo struct {
 	Name       string
 	Repository string
 	Password   string
+
+	modTimes map[string]time.Time
 }
 
 func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64) {
 	for {
 		// To always sleep even if we got an error
 		func() {
+			if !r.changed() {
+				return
+			}
+			log.Printf("Start Scraping Repo %s", r.Name)
 			timer := prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "check"))
 			if check, err := r.Check(); err == nil {
 				numRepoErrors.WithLabelValues(r.Name).Set(float64(check.NumErrors))
@@ -189,6 +196,32 @@ func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64) {
 
 		}
 	}
+}
+
+func (r *Repo) changed() (changed bool) {
+	if r.modTimes == nil {
+		r.modTimes = make(map[string]time.Time, 7)
+	}
+
+	dir, err := os.ReadDir(r.Repository)
+	if err != nil {
+		log.Printf("error checking if repo chaged: os.ReadDir(%q) = %v", r.Repository, err)
+		return true
+	}
+
+	for _, d := range dir {
+		i, err := d.Info()
+		if err != nil {
+			log.Printf("error checking if repo chaged: %s.Info() = %v", d.Name(), err)
+			return true
+		}
+
+		if r.modTimes[i.Name()].Before(i.ModTime()) {
+			r.modTimes[i.Name()] = i.ModTime()
+			changed = true
+		}
+	}
+	return changed
 }
 
 type rawDataStats struct {
