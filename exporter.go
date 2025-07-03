@@ -10,13 +10,15 @@ import (
 )
 
 type Exporter struct {
-	repoPath string
-	repos    sync.Map // map[string]*Repo
+	repoPath              string
+	scrapeIntervalSeconds int64
+	repos                 sync.Map // map[string]*Repo
 }
 
-func NewExporter(ctx context.Context, path string) *Exporter {
+func NewExporter(ctx context.Context, path string, scrapeIntervalSeconds int64) *Exporter {
 	exp := Exporter{
-		repoPath: path,
+		repoPath:              path,
+		scrapeIntervalSeconds: scrapeIntervalSeconds,
 	}
 
 	go exp.Scan(ctx)
@@ -56,7 +58,7 @@ func (e *Exporter) Scan(ctx context.Context) error {
 				continue
 			}
 			log.Printf("Found new repo: %s", name)
-			go repo.Scrape(ctx)
+			go repo.Scrape(ctx, e.scrapeIntervalSeconds)
 			e.repos.Store(name, repo)
 		}
 

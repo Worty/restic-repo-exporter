@@ -134,7 +134,7 @@ type Repo struct {
 	Password   string
 }
 
-func (r *Repo) Scrape(ctx context.Context) {
+func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64) {
 	for {
 		// To always sleep even if we got an error
 		func() {
@@ -185,7 +185,7 @@ func (r *Repo) Scrape(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(time.Duration(rand.Int64N(300)+300) * time.Second):
+		case <-time.After(time.Duration(rand.Int64N(scrapeIntervalSeconds)+scrapeIntervalSeconds) * time.Second):
 
 		}
 	}
