@@ -136,53 +136,56 @@ type Repo struct {
 
 func (r *Repo) Scrape(ctx context.Context) {
 	for {
-		timer := prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "check"))
-		if check, err := r.Check(); err == nil {
-			numRepoErrors.WithLabelValues(r.Name).Set(float64(check.NumErrors))
-			suggestPrune.WithLabelValues(r.Name).Set(boolToFloat(check.SuggestPrune))
-			suggestRepairIndex.WithLabelValues(r.Name).Set(boolToFloat(check.SuggestRepairIndex))
-		} else {
-			scrapeErr.WithLabelValues(r.Name, "check").Inc()
-			return
-		}
-		timer.ObserveDuration()
-
-		timer = prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "raw-stats"))
-		rawStats, err := r.RawStats(nil)
-		if err != nil {
-			scrapeErr.WithLabelValues(r.Name, "raw-stats").Inc()
-			return
-		}
-		totalRepoSize.WithLabelValues(r.Name).Set(float64(rawStats.TotalSize))
-		totalUncompressedSize.WithLabelValues(r.Name).Set(float64(rawStats.TotalUncompressedSize))
-		compressionRatio.WithLabelValues(r.Name).Set(rawStats.CompressionRatio)
-		compressionProgress.WithLabelValues(r.Name).Set(float64(rawStats.CompressionProgress) / 100.0)
-		compressionSpaceSaving.WithLabelValues(r.Name).Set(float64(rawStats.CompressionSpaceSaving) / 100.0)
-		totalBlobCount.WithLabelValues(r.Name).Set(float64(rawStats.TotalBlobCount))
-		totalSnapshotsCount.WithLabelValues(r.Name).Set(float64(rawStats.SnapshotsCount))
-		timer.ObserveDuration()
-
-		timer = prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "snapshots"))
-		groups, err := r.Snapshots("host,tags")
-		if err != nil {
-			scrapeErr.WithLabelValues(r.Name, "snapshots").Inc()
-			return
-		}
-		for _, group := range groups {
-			tags := strings.Join(group.GroupKey.Tags, "_")
-			numSnapshots.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set(float64(len(group.Snapshots)))
-			if len(group.Snapshots) > 0 {
-				lastSnapshot := group.Snapshots[0]
-				lastSnapshotTimestamp.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set(float64(lastSnapshot.Time.Unix()))
-				lastSnapshotCreationDuration.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set((lastSnapshot.Summary.BackupEnd.Sub(lastSnapshot.Summary.BackupStart)).Seconds())
+		// To always sleep even if we got an error
+		func() {
+			timer := prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "check"))
+			if check, err := r.Check(); err == nil {
+				numRepoErrors.WithLabelValues(r.Name).Set(float64(check.NumErrors))
+				suggestPrune.WithLabelValues(r.Name).Set(boolToFloat(check.SuggestPrune))
+				suggestRepairIndex.WithLabelValues(r.Name).Set(boolToFloat(check.SuggestRepairIndex))
+			} else {
+				scrapeErr.WithLabelValues(r.Name, "check").Inc()
+				return
 			}
-		}
-		timer.ObserveDuration()
+			timer.ObserveDuration()
+
+			timer = prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "raw-stats"))
+			rawStats, err := r.RawStats(nil)
+			if err != nil {
+				scrapeErr.WithLabelValues(r.Name, "raw-stats").Inc()
+				return
+			}
+			totalRepoSize.WithLabelValues(r.Name).Set(float64(rawStats.TotalSize))
+			totalUncompressedSize.WithLabelValues(r.Name).Set(float64(rawStats.TotalUncompressedSize))
+			compressionRatio.WithLabelValues(r.Name).Set(rawStats.CompressionRatio)
+			compressionProgress.WithLabelValues(r.Name).Set(float64(rawStats.CompressionProgress) / 100.0)
+			compressionSpaceSaving.WithLabelValues(r.Name).Set(float64(rawStats.CompressionSpaceSaving) / 100.0)
+			totalBlobCount.WithLabelValues(r.Name).Set(float64(rawStats.TotalBlobCount))
+			totalSnapshotsCount.WithLabelValues(r.Name).Set(float64(rawStats.SnapshotsCount))
+			timer.ObserveDuration()
+
+			timer = prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "snapshots"))
+			groups, err := r.Snapshots("host,tags")
+			if err != nil {
+				scrapeErr.WithLabelValues(r.Name, "snapshots").Inc()
+				return
+			}
+			for _, group := range groups {
+				tags := strings.Join(group.GroupKey.Tags, "_")
+				numSnapshots.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set(float64(len(group.Snapshots)))
+				if len(group.Snapshots) > 0 {
+					lastSnapshot := group.Snapshots[0]
+					lastSnapshotTimestamp.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set(float64(lastSnapshot.Time.Unix()))
+					lastSnapshotCreationDuration.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set((lastSnapshot.Summary.BackupEnd.Sub(lastSnapshot.Summary.BackupStart)).Seconds())
+				}
+			}
+			timer.ObserveDuration()
+		}()
 
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(time.Duration(rand.IntN(300)) + 5*time.Minute):
+		case <-time.After(time.Duration(rand.Int64N(300)+300) * time.Second):
 
 		}
 	}

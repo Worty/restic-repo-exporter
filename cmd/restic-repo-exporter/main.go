@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"log"
 	"net/http"
@@ -31,8 +32,16 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 
-	log.Printf("Starting Prometheus metrics server on %s", *listenAddr)
-	if err := http.ListenAndServe(*listenAddr, mux); err != nil {
+	srv := http.Server{Addr: *listenAddr, Handler: mux}
+
+	context.AfterFunc(ctx, func() {
+		if err := srv.Close(); err != nil {
+			log.Printf("srv.Close() err = %v", err)
+		}
+	})
+
+	log.Printf("Starting Prometheus metrics server on %s", srv.Addr)
+	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("Error starting HTTP server: %v", err)
 	}
 }
