@@ -30,9 +30,9 @@ var (
 			Namespace: "restic",
 			Subsystem: "repo",
 			Name:      "scrape_duration_seconds",
-			Buckets:   prometheus.ExponentialBucketsRange(0.1, 30, 10),
+			Buckets:   prometheus.ExponentialBucketsRange(0.1, 60, 10),
 		},
-		[]string{"repo"},
+		[]string{"repo", "action"},
 	)
 	numSnapshots = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -136,11 +136,7 @@ type Repo struct {
 
 func (r *Repo) Scrape(ctx context.Context) {
 	for {
-		timeStart := time.Now()
-		defer func() {
-			scrapeDuration.WithLabelValues(r.Name).Observe(time.Since(timeStart).Seconds())
-		}()
-
+		timer := prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "check"))
 		if check, err := r.Check(); err == nil {
 			numRepoErrors.WithLabelValues(r.Name).Set(float64(check.NumErrors))
 			suggestPrune.WithLabelValues(r.Name).Set(boolToFloat(check.SuggestPrune))
@@ -149,7 +145,9 @@ func (r *Repo) Scrape(ctx context.Context) {
 			scrapeErr.WithLabelValues(r.Name, "check").Inc()
 			return
 		}
+		timer.ObserveDuration()
 
+		timer = prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "raw-stats"))
 		rawStats, err := r.RawStats(nil)
 		if err != nil {
 			scrapeErr.WithLabelValues(r.Name, "raw-stats").Inc()
@@ -162,10 +160,12 @@ func (r *Repo) Scrape(ctx context.Context) {
 		compressionSpaceSaving.WithLabelValues(r.Name).Set(float64(rawStats.CompressionSpaceSaving) / 100.0)
 		totalBlobCount.WithLabelValues(r.Name).Set(float64(rawStats.TotalBlobCount))
 		totalSnapshotsCount.WithLabelValues(r.Name).Set(float64(rawStats.SnapshotsCount))
+		timer.ObserveDuration()
 
+		timer = prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "snapshots"))
 		groups, err := r.Snapshots("host,tags")
 		if err != nil {
-			scrapeErr.WithLabelValues(r.Name, "latest-snapshots").Inc()
+			scrapeErr.WithLabelValues(r.Name, "snapshots").Inc()
 			return
 		}
 		for _, group := range groups {
@@ -177,6 +177,7 @@ func (r *Repo) Scrape(ctx context.Context) {
 				lastSnapshotCreationDuration.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set((lastSnapshot.Summary.BackupEnd.Sub(lastSnapshot.Summary.BackupStart)).Seconds())
 			}
 		}
+		timer.ObserveDuration()
 
 		select {
 		case <-ctx.Done():
