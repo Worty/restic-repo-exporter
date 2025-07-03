@@ -30,6 +30,7 @@ var (
 			Namespace: "restic",
 			Subsystem: "repo",
 			Name:      "scrape_duration_seconds",
+			Buckets:   prometheus.ExponentialBucketsRange(0.1, 30, 10),
 		},
 		[]string{"repo"},
 	)
@@ -40,7 +41,13 @@ var (
 		},
 		[]string{"repo", "hostname", "tag"},
 	)
-
+	lastSnapshotCreationDuration = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: prometheus.BuildFQName("restic", "repo", "last_snapshot_creation_seconds"),
+			Help: "Time it took to create the last snapshot",
+		},
+		[]string{"repo", "hostname", "tag"},
+	)
 	lastSnapshotTimestamp = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: prometheus.BuildFQName("restic", "repo", "last_snapshot_timestamp"),
@@ -48,7 +55,6 @@ var (
 		},
 		[]string{"repo", "hostname", "tag"},
 	)
-
 	numRepoErrors = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: prometheus.BuildFQName("restic", "repo", "num_errors"),
@@ -56,7 +62,6 @@ var (
 		},
 		[]string{"repo"},
 	)
-
 	suggestRepairIndex = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: prometheus.BuildFQName("restic", "repo", "suggest_repair_index"),
@@ -64,7 +69,6 @@ var (
 		},
 		[]string{"repo"},
 	)
-
 	suggestPrune = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: prometheus.BuildFQName("restic", "repo", "suggest_prune"),
@@ -72,7 +76,6 @@ var (
 		},
 		[]string{"repo"},
 	)
-
 	totalRepoSize = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: prometheus.BuildFQName("restic", "repo", "total_size_bytes"),
@@ -80,7 +83,6 @@ var (
 		},
 		[]string{"repo"},
 	)
-
 	totalUncompressedSize = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: prometheus.BuildFQName("restic", "repo", "total_uncompressed_size_bytes"),
@@ -88,7 +90,6 @@ var (
 		},
 		[]string{"repo"},
 	)
-
 	compressionRatio = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: prometheus.BuildFQName("restic", "repo", "compression_ratio"),
@@ -96,7 +97,6 @@ var (
 		},
 		[]string{"repo"},
 	)
-
 	compressionProgress = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: prometheus.BuildFQName("restic", "repo", "compression_progress_percent"),
@@ -104,7 +104,6 @@ var (
 		},
 		[]string{"repo"},
 	)
-
 	compressionSpaceSaving = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: prometheus.BuildFQName("restic", "repo", "compression_space_saving_percent"),
@@ -112,7 +111,6 @@ var (
 		},
 		[]string{"repo"},
 	)
-
 	totalBlobCount = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: prometheus.BuildFQName("restic", "repo", "total_blob_count"),
@@ -165,15 +163,19 @@ func (r *Repo) Scrape(ctx context.Context) {
 		totalBlobCount.WithLabelValues(r.Name).Set(float64(rawStats.TotalBlobCount))
 		totalSnapshotsCount.WithLabelValues(r.Name).Set(float64(rawStats.SnapshotsCount))
 
-		snapshots, err := r.Snapshots("host,tags")
+		groups, err := r.Snapshots("host,tags")
 		if err != nil {
 			scrapeErr.WithLabelValues(r.Name, "latest-snapshots").Inc()
 			return
 		}
-		for _, group := range snapshots {
+		for _, group := range groups {
 			tags := strings.Join(group.GroupKey.Tags, "_")
 			numSnapshots.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set(float64(len(group.Snapshots)))
-			lastSnapshotTimestamp.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set(float64(group.Snapshots[0].Time.Unix()))
+			if len(group.Snapshots) > 0 {
+				lastSnapshot := group.Snapshots[0]
+				lastSnapshotTimestamp.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set(float64(lastSnapshot.Time.Unix()))
+				lastSnapshotCreationDuration.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set((lastSnapshot.Summary.BackupEnd.Sub(lastSnapshot.Summary.BackupStart)).Seconds())
+			}
 		}
 
 		select {
