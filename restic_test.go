@@ -33,7 +33,7 @@ func TestRepoGroupedSnapshots(t *testing.T) {
 		t.Errorf("CheckResult mismatch (-got +want):\n%s", diff)
 	}
 
-	gotSnapshots, err := repo.LatestSnapshots("host,tags")
+	gotSnapshots, err := repo.Snapshots("host,tags")
 	if err != nil {
 		t.Fatalf("Expected to get latest snapshots, got error: %v", err)
 	}

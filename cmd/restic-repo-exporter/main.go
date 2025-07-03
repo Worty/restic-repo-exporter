@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	resticrepoexporter "github.com/worty/restic-repo-exporter"
 )
@@ -22,21 +22,17 @@ func main() {
 		log.Fatal("repo-path must be specified")
 	}
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, os.Kill)
 	defer cancel()
 
-	exp := resticrepoexporter.Exporter{
-		RootPath: *repoPath,
-	}
-	go exp.Scan(ctx)
+	resticrepoexporter.NewExporter(ctx, *repoPath)
 
-	registry := prometheus.NewRegistry()
-	registry.MustRegister(&exp)
+	// Create a new ServeMux for custom routing
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
 
-	http.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{Registry: registry}))
-
-	log.Printf("Starting exporter on %s\n", *listenAddr)
-	if err := http.ListenAndServe(*listenAddr, nil); err != nil {
-		log.Fatalf("HTTP server failed: %v", err)
+	log.Printf("Starting Prometheus metrics server on %s", *listenAddr)
+	if err := http.ListenAndServe(*listenAddr, mux); err != nil {
+		log.Fatalf("Error starting HTTP server: %v", err)
 	}
 }
