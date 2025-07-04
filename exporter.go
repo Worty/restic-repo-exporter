@@ -2,6 +2,7 @@ package resticrepoexporter
 
 import (
 	"context"
+	"io/fs"
 	"log"
 	"os"
 	"path"
@@ -28,39 +29,40 @@ func NewExporter(ctx context.Context, path string, scrapeIntervalSeconds int64) 
 
 func (e *Exporter) Scan(ctx context.Context) error {
 	for {
-		dirs, err := os.ReadDir(e.repoPath)
-		if err != nil {
-			log.Printf("Error reading repo path %s: %v", e.repoPath, err)
-		}
-		for _, dir := range dirs {
+		fs.WalkDir(os.DirFS(e.repoPath), ".", func(dirPath string, dir fs.DirEntry, err error) error {
 			if err := ctx.Err(); err != nil {
-				continue
+				return nil
 			}
 			if !dir.IsDir() {
-				continue
+				return nil
 			}
-			name := dir.Name()
-			if _, ok := e.repos.Load(name); ok {
-				// Repo already exists, skip it
-				continue
+
+			if _, ok := e.repos.Load(dirPath); ok {
+				return fs.SkipDir
 			}
+
+			if _, err := os.Stat(path.Join(e.repoPath, dirPath, "config")); os.IsNotExist(err) {
+				return nil
+			}
+
 			pw := os.Getenv("RESTIC_PASSWORD")
-			if ov := os.Getenv("RESTIC_PASSWORD_" + name); ov != "" {
+			if ov := os.Getenv("RESTIC_PASSWORD_" + dirPath); ov != "" {
 				pw = ov
 			}
 			repo := &Repo{
-				Name:       name,
-				Repository: path.Join(e.repoPath, name),
+				Name:       dir.Name(),
+				Repository: path.Join(e.repoPath, dirPath),
 				Password:   pw,
 			}
+			log.Printf("Found new repo: %s", dir.Name())
 			if _, err := repo.Check(); err != nil {
-				log.Printf("Error checking repo %s: %v", name, err)
-				continue
+				log.Printf("Error checking repo %s: %v", dirPath, err)
+				return fs.SkipDir
 			}
-			log.Printf("Found new repo: %s", name)
 			go repo.Scrape(ctx, e.scrapeIntervalSeconds)
-			e.repos.Store(name, repo)
-		}
+			e.repos.Store(dirPath, repo)
+			return fs.SkipDir
+		})
 
 		select {
 		case <-ctx.Done():
