@@ -16,7 +16,7 @@ import (
 
 func main() {
 	listenAddr := flag.String("listen-address", ":9100", "The address to listen on for HTTP requests.")
-	repoPath := flag.String("repo-path", "", "Path to the directory containing restic repositories.")
+	repoPath := flag.String("repo-path", "", "Path to a directory containing restic repositories (or in its subfolders).")
 	scrapeInterval := flag.Int64("scrape-interval", 30, "Base scrape interval in seconds. A random interval of the same amount will be added on top.")
 	flag.Parse()
 
