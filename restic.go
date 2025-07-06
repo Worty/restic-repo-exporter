@@ -23,7 +23,7 @@ type Repo struct {
 	modTimes map[string]time.Time
 }
 
-func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64) {
+func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64, snapshotGroups string) {
 	for {
 		// To always sleep even if we got an error
 		func() {
@@ -58,7 +58,7 @@ func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64) {
 			timer.ObserveDuration()
 
 			timer = prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "snapshots"))
-			groups, err := r.Snapshots("host,tags")
+			groups, err := r.Snapshots(snapshotGroups)
 			if err != nil {
 				scrapeErr.WithLabelValues(r.Name, "snapshots").Inc()
 				return
@@ -232,6 +232,10 @@ func (r *Repo) Snapshots(groupBy string) (gr []GroupedSnapshot, err error) {
 	}
 
 	SortGroupedSnapshots(gr)
+	for i := range gr {
+		slices.Sort(gr[i].GroupKey.Tags)
+		slices.Sort(gr[i].GroupKey.Paths)
+	}
 
 	return gr, nil
 }

@@ -14,10 +14,13 @@ import (
 	resticrepoexporter "github.com/worty/restic-repo-exporter"
 )
 
+var snapshotGroups *string
+
 func main() {
 	listenAddr := flag.String("listen-address", ":9100", "The address to listen on for HTTP requests.")
 	repoPath := flag.String("repo-path", "", "Path to a directory containing restic repositories (or in its subfolders).")
 	scrapeInterval := flag.Int64("scrape-interval", 30, "Base scrape interval in seconds. A random interval of the same amount will be added on top.")
+	snapshotGroups = flag.String("snapshots-groups", "host,tags", "")
 	flag.Parse()
 
 	if *repoPath == "" {
@@ -27,7 +30,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, os.Kill)
 	defer cancel()
 
-	resticrepoexporter.NewExporter(ctx, *repoPath, *scrapeInterval)
+	resticrepoexporter.NewExporter(ctx, *repoPath, *scrapeInterval, *snapshotGroups)
 
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
