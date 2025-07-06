@@ -17,11 +17,7 @@ func TestRepoGroupedSnapshots(t *testing.T) {
 	}
 
 	want := CheckResult{
-		MessageType:        "summary",
-		NumErrors:          0,
-		BrokenPacks:        nil,
-		SuggestRepairIndex: false,
-		SuggestPrune:       false,
+		MessageType: "summary",
 	}
 
 	got, err := repo.Check()
@@ -42,7 +38,6 @@ func TestRepoGroupedSnapshots(t *testing.T) {
 		{
 			GroupKey: GroupKey{
 				Hostname: "test-host",
-				Paths:    nil,
 				Tags:     []string{"test-tag"},
 			},
 			Snapshots: []Snapshot{
@@ -60,11 +55,6 @@ func TestRepoGroupedSnapshots(t *testing.T) {
 						BackupStart:         time.Date(2025, 7, 2, 19, 46, 45, 543749354, testLoc),
 						BackupEnd:           time.Date(2025, 7, 2, 19, 46, 46, 266989420, testLoc),
 						FilesNew:            1,
-						FilesChanged:        0,
-						FilesUnmodified:     0,
-						DirsNew:             0,
-						DirsChanged:         0,
-						DirsUnmodified:      0,
 						DataBlobs:           1,
 						TreeBlobs:           1,
 						DataAdded:           435,
@@ -98,16 +88,7 @@ func TestRepoGroupedSnapshots(t *testing.T) {
 					Summary: Summary{
 						BackupStart:         time.Date(2025, 7, 2, 19, 46, 53, 759177012, testLoc),
 						BackupEnd:           time.Date(2025, 7, 2, 19, 46, 54, 399548120, testLoc),
-						FilesNew:            0,
-						FilesChanged:        0,
 						FilesUnmodified:     1,
-						DirsNew:             0,
-						DirsChanged:         0,
-						DirsUnmodified:      0,
-						DataBlobs:           0,
-						TreeBlobs:           0,
-						DataAdded:           0,
-						DataAddedPacked:     0,
 						TotalFilesProcessed: 1,
 						TotalBytesProcessed: 56,
 					},
