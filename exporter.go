@@ -149,6 +149,9 @@ func (e *Exporter) Scan(ctx context.Context) error {
 			if err := ctx.Err(); err != nil {
 				return fs.SkipAll
 			}
+			if dir == nil {
+				return nil // Skip if the directory entry is nil
+			}
 			if !dir.IsDir() {
 				return nil
 			}
