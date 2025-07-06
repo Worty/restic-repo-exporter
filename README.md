@@ -2,6 +2,11 @@
 
 ## Install
 
+### Docker
+```
+docker run -e RESTIC_PASSWORD="abc123" --rm -v $(pwd):/pwd ghcr.io/worty/restic-repo-exporter --repo-path /pwd/testdata
+```
+
 ### Pre-Compiled binaries
 Checkout [Releases](https://github.com/Worty/restic-repo-exporter/releases)
 
