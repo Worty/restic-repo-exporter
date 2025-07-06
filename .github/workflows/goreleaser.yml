@@ -74,8 +74,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:master
+            ghcr.io/worty/restic-repo-exporter:latest
+            ghcr.io/worty/restic-repo-exporter:master
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -85,6 +85,6 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          tags: ghcr.io/worty/restic-repo-exporter:${{ github.ref_name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
