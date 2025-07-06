@@ -29,7 +29,6 @@ func main() {
 
 	resticrepoexporter.NewExporter(ctx, *repoPath, *scrapeInterval)
 
-	// Create a new ServeMux for custom routing
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 
