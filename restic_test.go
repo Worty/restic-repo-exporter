@@ -12,7 +12,7 @@ var testLoc *time.Location = time.FixedZone("CEST", 2*60*60)
 func TestRepoGroupedSnapshots(t *testing.T) {
 	repo := Repo{
 		Name:       "test-repo",
-		Repository: "./testdata/repo-with-tags",
+		Repository: "./testdata/repos/repo-with-tags",
 		Password:   "abc123",
 	}
 
@@ -167,7 +167,7 @@ func TestRepoGroupedSnapshots(t *testing.T) {
 func TestRepoLocked(t *testing.T) {
 	repo := Repo{
 		Name:       "test-repo-locked",
-		Repository: "./testdata/repo-locked",
+		Repository: "./testdata/repos/repo-locked",
 		Password:   "abc123",
 	}
 
