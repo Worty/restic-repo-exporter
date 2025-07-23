@@ -1,4 +1,4 @@
-FROM golang:1.24-bookworm@sha256:69adc37c19ac6ef724b561b0dc675b27d8c719dfe848db7dd1092a7c9ac24bc6 AS builder
+FROM golang:1.24-bookworm@sha256:24ed51360827db30fd73a88a5b911055cffec73bed9d9c0c229bea24af1c98ce AS builder
 ENV CGO_ENABLED=0
 WORKDIR /app
 
