@@ -4,7 +4,7 @@ go 1.24.4
 
 require (
 	github.com/google/go-cmp v0.7.0
-	github.com/prometheus/client_golang v1.22.0
+	github.com/prometheus/client_golang v1.23.0
 )
 
 require (
