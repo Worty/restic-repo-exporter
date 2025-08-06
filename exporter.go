@@ -174,7 +174,7 @@ func (e *Exporter) Scan(ctx context.Context) error {
 				Password:   pw,
 			}
 			log.Printf("Found new repo: %s", dir.Name())
-			if _, err := repo.Check(); err != nil {
+			if _, err := repo.Snapshots("host,tags"); err != nil { // calling snapshots is fast, the result will be discarded anyway
 				log.Printf("Error checking repo %s: %v", dirPath, err)
 				return fs.SkipDir
 			}
