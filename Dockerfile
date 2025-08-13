@@ -9,7 +9,7 @@ COPY ./cmd/ ./cmd/
 
 RUN go build -o restic-repo-exporter ./cmd/restic-repo-exporter
 
-FROM debian:bookworm-slim@sha256:2424c1850714a4d94666ec928e24d86de958646737b1d113f5b2207be44d37d8
+FROM debian:bookworm-slim@sha256:8f8e63bb364a33694362f38ee9a9e38b09eb9eb138584693800b87ca173bfd4a
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates bzip2 curl && \
     rm -rf /var/lib/apt/lists/*
