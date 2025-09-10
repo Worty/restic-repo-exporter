@@ -31,7 +31,15 @@ func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64) {
 				return
 			}
 			log.Printf("Start Scraping Repo %s", r.Name)
-			timer := prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "check"))
+			timer := prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "config"))
+			if config, err := r.Config(); err == nil {
+				repoVersion.WithLabelValues(r.Name).Set(float64(config.Version))
+			} else {
+				scrapeErr.WithLabelValues(r.Name, "config").Inc()
+			}
+			timer.ObserveDuration()
+
+			timer = prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "check"))
 			if check, err := r.Check(); err == nil {
 				numRepoErrors.WithLabelValues(r.Name).Set(float64(check.NumErrors))
 				suggestPrune.WithLabelValues(r.Name).Set(boolToFloat(check.SuggestPrune))
@@ -248,6 +256,21 @@ func (r *Repo) Check() (cr CheckResult, err error) {
 	o, err := r.exec("check")
 	if err != nil {
 		return CheckResult{}, err
+	}
+
+	return cr, json.Unmarshal(o, &cr)
+}
+
+type ConfigResult struct {
+	Version           int    `json:"version"`
+	Id                string `json:"id"`
+	ChunkerPolynomial string `json:"chunker_polynomial"`
+}
+
+func (r *Repo) Config() (cr ConfigResult, err error) {
+	o, err := r.exec("cat", "config")
+	if err != nil {
+		return ConfigResult{}, err
 	}
 
 	return cr, json.Unmarshal(o, &cr)
