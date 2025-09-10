@@ -48,10 +48,10 @@ go_goroutines 11
 go_info{version="go1.25.1"} 1
 # HELP go_memstats_alloc_bytes Number of bytes allocated in heap and currently in use. Equals to /memory/classes/heap/objects:bytes.
 # TYPE go_memstats_alloc_bytes gauge
-go_memstats_alloc_bytes 363968
+go_memstats_alloc_bytes 420384
 # HELP go_memstats_alloc_bytes_total Total number of bytes allocated in heap until now, even if released already. Equals to /gc/heap/allocs:bytes.
 # TYPE go_memstats_alloc_bytes_total counter
-go_memstats_alloc_bytes_total 363968
+go_memstats_alloc_bytes_total 420384
 # HELP go_memstats_buck_hash_sys_bytes Number of bytes used by the profiling bucket hash table. Equals to /memory/classes/profiling/buckets:bytes.
 # TYPE go_memstats_buck_hash_sys_bytes gauge
 go_memstats_buck_hash_sys_bytes 3742
@@ -60,31 +60,31 @@ go_memstats_buck_hash_sys_bytes 3742
 go_memstats_frees_total 0
 # HELP go_memstats_gc_sys_bytes Number of bytes used for garbage collection system metadata. Equals to /memory/classes/metadata/other:bytes.
 # TYPE go_memstats_gc_sys_bytes gauge
-go_memstats_gc_sys_bytes 1.455888e+06
+go_memstats_gc_sys_bytes 1.475856e+06
 # HELP go_memstats_heap_alloc_bytes Number of heap bytes allocated and currently in use, same as go_memstats_alloc_bytes. Equals to /memory/classes/heap/objects:bytes.
 # TYPE go_memstats_heap_alloc_bytes gauge
-go_memstats_heap_alloc_bytes 363968
+go_memstats_heap_alloc_bytes 420384
 # HELP go_memstats_heap_idle_bytes Number of heap bytes waiting to be used. Equals to /memory/classes/heap/released:bytes + /memory/classes/heap/free:bytes.
 # TYPE go_memstats_heap_idle_bytes gauge
-go_memstats_heap_idle_bytes 5.226496e+06
+go_memstats_heap_idle_bytes 1.277952e+06
 # HELP go_memstats_heap_inuse_bytes Number of heap bytes that are in use. Equals to /memory/classes/heap/objects:bytes + /memory/classes/heap/unused:bytes
 # TYPE go_memstats_heap_inuse_bytes gauge
-go_memstats_heap_inuse_bytes 2.605056e+06
+go_memstats_heap_inuse_bytes 2.392064e+06
 # HELP go_memstats_heap_objects Number of currently allocated objects. Equals to /gc/heap/objects:objects.
 # TYPE go_memstats_heap_objects gauge
-go_memstats_heap_objects 692
+go_memstats_heap_objects 1031
 # HELP go_memstats_heap_released_bytes Number of heap bytes released to OS. Equals to /memory/classes/heap/released:bytes.
 # TYPE go_memstats_heap_released_bytes gauge
-go_memstats_heap_released_bytes 5.226496e+06
+go_memstats_heap_released_bytes 1.277952e+06
 # HELP go_memstats_heap_sys_bytes Number of heap bytes obtained from system. Equals to /memory/classes/heap/objects:bytes + /memory/classes/heap/unused:bytes + /memory/classes/heap/released:bytes + /memory/classes/heap/free:bytes.
 # TYPE go_memstats_heap_sys_bytes gauge
-go_memstats_heap_sys_bytes 7.831552e+06
+go_memstats_heap_sys_bytes 3.670016e+06
 # HELP go_memstats_last_gc_time_seconds Number of seconds since 1970 of last garbage collection.
 # TYPE go_memstats_last_gc_time_seconds gauge
 go_memstats_last_gc_time_seconds 0
 # HELP go_memstats_mallocs_total Total number of heap objects allocated, both live and gc-ed. Semantically a counter version for go_memstats_heap_objects gauge. Equals to /gc/heap/allocs:objects + /gc/heap/tiny/allocs:objects.
 # TYPE go_memstats_mallocs_total counter
-go_memstats_mallocs_total 692
+go_memstats_mallocs_total 1031
 # HELP go_memstats_mcache_inuse_bytes Number of bytes in use by mcache structures. Equals to /memory/classes/metadata/mcache/inuse:bytes.
 # TYPE go_memstats_mcache_inuse_bytes gauge
 go_memstats_mcache_inuse_bytes 14496
@@ -93,25 +93,25 @@ go_memstats_mcache_inuse_bytes 14496
 go_memstats_mcache_sys_bytes 15704
 # HELP go_memstats_mspan_inuse_bytes Number of bytes in use by mspan structures. Equals to /memory/classes/metadata/mspan/inuse:bytes.
 # TYPE go_memstats_mspan_inuse_bytes gauge
-go_memstats_mspan_inuse_bytes 55360
+go_memstats_mspan_inuse_bytes 65600
 # HELP go_memstats_mspan_sys_bytes Number of bytes used for mspan structures obtained from system. Equals to /memory/classes/metadata/mspan/inuse:bytes + /memory/classes/metadata/mspan/free:bytes.
 # TYPE go_memstats_mspan_sys_bytes gauge
-go_memstats_mspan_sys_bytes 65280
+go_memstats_mspan_sys_bytes 81600
 # HELP go_memstats_next_gc_bytes Number of heap bytes when next garbage collection will take place. Equals to /gc/heap/goal:bytes.
 # TYPE go_memstats_next_gc_bytes gauge
 go_memstats_next_gc_bytes 4.194304e+06
 # HELP go_memstats_other_sys_bytes Number of bytes used for other system allocations. Equals to /memory/classes/other:bytes.
 # TYPE go_memstats_other_sys_bytes gauge
-go_memstats_other_sys_bytes 1.170954e+06
+go_memstats_other_sys_bytes 872522
 # HELP go_memstats_stack_inuse_bytes Number of bytes obtained from system for stack allocator in non-CGO environments. Equals to /memory/classes/heap/stacks:bytes.
 # TYPE go_memstats_stack_inuse_bytes gauge
-go_memstats_stack_inuse_bytes 557056
+go_memstats_stack_inuse_bytes 524288
 # HELP go_memstats_stack_sys_bytes Number of bytes obtained from system for stack allocator. Equals to /memory/classes/heap/stacks:bytes + /memory/classes/os-stacks:bytes.
 # TYPE go_memstats_stack_sys_bytes gauge
-go_memstats_stack_sys_bytes 557056
+go_memstats_stack_sys_bytes 524288
 # HELP go_memstats_sys_bytes Number of bytes obtained from system. Equals to /memory/classes/total:byte.
 # TYPE go_memstats_sys_bytes gauge
-go_memstats_sys_bytes 1.1100176e+07
+go_memstats_sys_bytes 6.643728e+06
 # HELP go_sched_gomaxprocs_threads The current runtime.GOMAXPROCS setting, or the number of operating system threads that can execute user-level Go code simultaneously. Sourced from /sched/gomaxprocs:threads.
 # TYPE go_sched_gomaxprocs_threads gauge
 go_sched_gomaxprocs_threads 12
@@ -126,22 +126,22 @@ process_cpu_seconds_total 0
 process_max_fds 1.073741815e+09
 # HELP process_network_receive_bytes_total Number of bytes received by the process over the network.
 # TYPE process_network_receive_bytes_total counter
-process_network_receive_bytes_total 6.407398562e+09
+process_network_receive_bytes_total 6.51919139e+09
 # HELP process_network_transmit_bytes_total Number of bytes sent by the process over the network.
 # TYPE process_network_transmit_bytes_total counter
-process_network_transmit_bytes_total 2.706635526e+09
+process_network_transmit_bytes_total 2.752312167e+09
 # HELP process_open_fds Number of open file descriptors.
 # TYPE process_open_fds gauge
 process_open_fds 7
 # HELP process_resident_memory_bytes Resident memory size in bytes.
 # TYPE process_resident_memory_bytes gauge
-process_resident_memory_bytes 1.1186176e+07
+process_resident_memory_bytes 1.1382784e+07
 # HELP process_start_time_seconds Start time of the process since unix epoch in seconds.
 # TYPE process_start_time_seconds gauge
-process_start_time_seconds 1.75751040107e+09
+process_start_time_seconds 1.75751333244e+09
 # HELP process_virtual_memory_bytes Virtual memory size in bytes.
 # TYPE process_virtual_memory_bytes gauge
-process_virtual_memory_bytes 1.86955776e+09
+process_virtual_memory_bytes 1.869295616e+09
 # HELP process_virtual_memory_max_bytes Maximum amount of virtual memory available in bytes.
 # TYPE process_virtual_memory_max_bytes gauge
 process_virtual_memory_max_bytes 1.8446744073709552e+19
@@ -184,10 +184,6 @@ restic_repo_num_errors{repo="repo-with-tags"} 0
 restic_repo_number_of_snapshots{hostname="Wortys-Thinkpad",repo="locked-repo",tag=""} 2
 restic_repo_number_of_snapshots{hostname="test-host",repo="repo-with-tags",tag="test-tag"} 1
 restic_repo_number_of_snapshots{hostname="test-host",repo="repo-with-tags",tag="test-tag-latest"} 1
-# HELP restic_repo_repo_version Version of repo
-# TYPE restic_repo_repo_version gauge
-restic_repo_repo_version{repo="locked-repo"} 2
-restic_repo_repo_version{repo="repo-with-tags"} 2
 # HELP restic_repo_scrape_duration_seconds 
 # TYPE restic_repo_scrape_duration_seconds histogram
 restic_repo_scrape_duration_seconds_bucket{action="check",repo="locked-repo",le="0.1"} 0
@@ -201,7 +197,7 @@ restic_repo_scrape_duration_seconds_bucket{action="check",repo="locked-repo",le=
 restic_repo_scrape_duration_seconds_bucket{action="check",repo="locked-repo",le="29.475947757569855"} 1
 restic_repo_scrape_duration_seconds_bucket{action="check",repo="locked-repo",le="59.99999999999997"} 1
 restic_repo_scrape_duration_seconds_bucket{action="check",repo="locked-repo",le="+Inf"} 1
-restic_repo_scrape_duration_seconds_sum{action="check",repo="locked-repo"} 0.286768501
+restic_repo_scrape_duration_seconds_sum{action="check",repo="locked-repo"} 0.305626557
 restic_repo_scrape_duration_seconds_count{action="check",repo="locked-repo"} 1
 restic_repo_scrape_duration_seconds_bucket{action="check",repo="repo-with-tags",le="0.1"} 0
 restic_repo_scrape_duration_seconds_bucket{action="check",repo="repo-with-tags",le="0.20355579570665744"} 0
@@ -214,7 +210,7 @@ restic_repo_scrape_duration_seconds_bucket{action="check",repo="repo-with-tags",
 restic_repo_scrape_duration_seconds_bucket{action="check",repo="repo-with-tags",le="29.475947757569855"} 1
 restic_repo_scrape_duration_seconds_bucket{action="check",repo="repo-with-tags",le="59.99999999999997"} 1
 restic_repo_scrape_duration_seconds_bucket{action="check",repo="repo-with-tags",le="+Inf"} 1
-restic_repo_scrape_duration_seconds_sum{action="check",repo="repo-with-tags"} 0.306999468
+restic_repo_scrape_duration_seconds_sum{action="check",repo="repo-with-tags"} 0.298729161
 restic_repo_scrape_duration_seconds_count{action="check",repo="repo-with-tags"} 1
 restic_repo_scrape_duration_seconds_bucket{action="config",repo="locked-repo",le="0.1"} 0
 restic_repo_scrape_duration_seconds_bucket{action="config",repo="locked-repo",le="0.20355579570665744"} 0
@@ -227,7 +223,7 @@ restic_repo_scrape_duration_seconds_bucket{action="config",repo="locked-repo",le
 restic_repo_scrape_duration_seconds_bucket{action="config",repo="locked-repo",le="29.475947757569855"} 1
 restic_repo_scrape_duration_seconds_bucket{action="config",repo="locked-repo",le="59.99999999999997"} 1
 restic_repo_scrape_duration_seconds_bucket{action="config",repo="locked-repo",le="+Inf"} 1
-restic_repo_scrape_duration_seconds_sum{action="config",repo="locked-repo"} 0.286976809
+restic_repo_scrape_duration_seconds_sum{action="config",repo="locked-repo"} 0.289483488
 restic_repo_scrape_duration_seconds_count{action="config",repo="locked-repo"} 1
 restic_repo_scrape_duration_seconds_bucket{action="config",repo="repo-with-tags",le="0.1"} 0
 restic_repo_scrape_duration_seconds_bucket{action="config",repo="repo-with-tags",le="0.20355579570665744"} 0
@@ -240,7 +236,7 @@ restic_repo_scrape_duration_seconds_bucket{action="config",repo="repo-with-tags"
 restic_repo_scrape_duration_seconds_bucket{action="config",repo="repo-with-tags",le="29.475947757569855"} 1
 restic_repo_scrape_duration_seconds_bucket{action="config",repo="repo-with-tags",le="59.99999999999997"} 1
 restic_repo_scrape_duration_seconds_bucket{action="config",repo="repo-with-tags",le="+Inf"} 1
-restic_repo_scrape_duration_seconds_sum{action="config",repo="repo-with-tags"} 0.285532874
+restic_repo_scrape_duration_seconds_sum{action="config",repo="repo-with-tags"} 0.287739768
 restic_repo_scrape_duration_seconds_count{action="config",repo="repo-with-tags"} 1
 restic_repo_scrape_duration_seconds_bucket{action="raw-stats",repo="locked-repo",le="0.1"} 0
 restic_repo_scrape_duration_seconds_bucket{action="raw-stats",repo="locked-repo",le="0.20355579570665744"} 0
@@ -253,7 +249,7 @@ restic_repo_scrape_duration_seconds_bucket{action="raw-stats",repo="locked-repo"
 restic_repo_scrape_duration_seconds_bucket{action="raw-stats",repo="locked-repo",le="29.475947757569855"} 1
 restic_repo_scrape_duration_seconds_bucket{action="raw-stats",repo="locked-repo",le="59.99999999999997"} 1
 restic_repo_scrape_duration_seconds_bucket{action="raw-stats",repo="locked-repo",le="+Inf"} 1
-restic_repo_scrape_duration_seconds_sum{action="raw-stats",repo="locked-repo"} 0.2948963
+restic_repo_scrape_duration_seconds_sum{action="raw-stats",repo="locked-repo"} 0.285984025
 restic_repo_scrape_duration_seconds_count{action="raw-stats",repo="locked-repo"} 1
 restic_repo_scrape_duration_seconds_bucket{action="raw-stats",repo="repo-with-tags",le="0.1"} 0
 restic_repo_scrape_duration_seconds_bucket{action="raw-stats",repo="repo-with-tags",le="0.20355579570665744"} 0
@@ -266,7 +262,7 @@ restic_repo_scrape_duration_seconds_bucket{action="raw-stats",repo="repo-with-ta
 restic_repo_scrape_duration_seconds_bucket{action="raw-stats",repo="repo-with-tags",le="29.475947757569855"} 1
 restic_repo_scrape_duration_seconds_bucket{action="raw-stats",repo="repo-with-tags",le="59.99999999999997"} 1
 restic_repo_scrape_duration_seconds_bucket{action="raw-stats",repo="repo-with-tags",le="+Inf"} 1
-restic_repo_scrape_duration_seconds_sum{action="raw-stats",repo="repo-with-tags"} 0.286438652
+restic_repo_scrape_duration_seconds_sum{action="raw-stats",repo="repo-with-tags"} 0.299556274
 restic_repo_scrape_duration_seconds_count{action="raw-stats",repo="repo-with-tags"} 1
 restic_repo_scrape_duration_seconds_bucket{action="snapshots",repo="locked-repo",le="0.1"} 0
 restic_repo_scrape_duration_seconds_bucket{action="snapshots",repo="locked-repo",le="0.20355579570665744"} 0
@@ -279,7 +275,7 @@ restic_repo_scrape_duration_seconds_bucket{action="snapshots",repo="locked-repo"
 restic_repo_scrape_duration_seconds_bucket{action="snapshots",repo="locked-repo",le="29.475947757569855"} 1
 restic_repo_scrape_duration_seconds_bucket{action="snapshots",repo="locked-repo",le="59.99999999999997"} 1
 restic_repo_scrape_duration_seconds_bucket{action="snapshots",repo="locked-repo",le="+Inf"} 1
-restic_repo_scrape_duration_seconds_sum{action="snapshots",repo="locked-repo"} 0.290336757
+restic_repo_scrape_duration_seconds_sum{action="snapshots",repo="locked-repo"} 0.331999211
 restic_repo_scrape_duration_seconds_count{action="snapshots",repo="locked-repo"} 1
 restic_repo_scrape_duration_seconds_bucket{action="snapshots",repo="repo-with-tags",le="0.1"} 0
 restic_repo_scrape_duration_seconds_bucket{action="snapshots",repo="repo-with-tags",le="0.20355579570665744"} 0
@@ -292,7 +288,7 @@ restic_repo_scrape_duration_seconds_bucket{action="snapshots",repo="repo-with-ta
 restic_repo_scrape_duration_seconds_bucket{action="snapshots",repo="repo-with-tags",le="29.475947757569855"} 1
 restic_repo_scrape_duration_seconds_bucket{action="snapshots",repo="repo-with-tags",le="59.99999999999997"} 1
 restic_repo_scrape_duration_seconds_bucket{action="snapshots",repo="repo-with-tags",le="+Inf"} 1
-restic_repo_scrape_duration_seconds_sum{action="snapshots",repo="repo-with-tags"} 0.277744296
+restic_repo_scrape_duration_seconds_sum{action="snapshots",repo="repo-with-tags"} 0.278561179
 restic_repo_scrape_duration_seconds_count{action="snapshots",repo="repo-with-tags"} 1
 # HELP restic_repo_suggest_prune Whether the repository suggests pruning
 # TYPE restic_repo_suggest_prune gauge
@@ -318,4 +314,8 @@ restic_repo_total_snapshots_count{repo="repo-with-tags"} 2
 # TYPE restic_repo_total_uncompressed_size_bytes gauge
 restic_repo_total_uncompressed_size_bytes{repo="locked-repo"} 1091
 restic_repo_total_uncompressed_size_bytes{repo="repo-with-tags"} 499
+# HELP restic_repo_version Version of repo
+# TYPE restic_repo_version gauge
+restic_repo_version{repo="locked-repo"} 2
+restic_repo_version{repo="repo-with-tags"} 2
 ```

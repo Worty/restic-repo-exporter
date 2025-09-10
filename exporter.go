@@ -76,7 +76,7 @@ var (
 	)
 	repoVersion = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: prometheus.BuildFQName("restic", "repo", "repo_version"),
+			Name: prometheus.BuildFQName("restic", "repo", "version"),
 			Help: "Version of repo",
 		},
 		[]string{"repo"},
