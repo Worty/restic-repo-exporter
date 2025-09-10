@@ -74,6 +74,13 @@ var (
 		},
 		[]string{"repo"},
 	)
+	repoVersion = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: prometheus.BuildFQName("restic", "repo", "repo_version"),
+			Help: "Version of repo",
+		},
+		[]string{"repo"},
+	)
 	totalRepoSize = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: prometheus.BuildFQName("restic", "repo", "total_size_bytes"),
@@ -116,7 +123,6 @@ var (
 		},
 		[]string{"repo"},
 	)
-
 	totalSnapshotsCount = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: prometheus.BuildFQName("restic", "repo", "total_snapshots_count"),
@@ -174,8 +180,8 @@ func (e *Exporter) Scan(ctx context.Context) error {
 				Password:   pw,
 			}
 			log.Printf("Found new repo: %s", dir.Name())
-			if _, err := repo.Snapshots("host,tags"); err != nil { // calling snapshots is fast, the result will be discarded anyway
-				log.Printf("Error checking repo %s: %v", dirPath, err)
+			if _, err := repo.Config(); err != nil { // calling config is fast, the result will be discarded anyway
+				log.Printf("Error reading repo %s: %v", dirPath, err)
 				return fs.SkipDir
 			}
 			go repo.Scrape(ctx, e.scrapeIntervalSeconds)

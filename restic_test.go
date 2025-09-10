@@ -143,6 +143,21 @@ func TestRepoGroupedSnapshots(t *testing.T) {
 	if diff := cmp.Diff(gotStats, wantStats); diff != "" {
 		t.Errorf("Raw data stats with tag mismatch (-got +want):\n%s", diff)
 	}
+
+	wantConfig := ConfigResult{
+		Version:           2,
+		Id:                "9ebd87d6abb21dcc921d05adace221e65ed3c94719c6d11b0d9ff85d972f4776",
+		ChunkerPolynomial: "2ab5c8aeafd69f",
+	}
+
+	gotConfig, err := repo.Config()
+	if err != nil {
+		t.Fatalf("Expected to get repo config, got error: %v", err)
+	}
+
+	if diff := cmp.Diff(gotConfig, wantConfig); diff != "" {
+		t.Errorf("repo config mismatch (-got +want):\n%s", diff)
+	}
 }
 
 func TestRepoLocked(t *testing.T) {
