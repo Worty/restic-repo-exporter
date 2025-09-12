@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/rand/v2"
 	"os"
 	"os/exec"
+	"runtime"
 	"slices"
 	"strings"
 	"time"
@@ -23,10 +23,13 @@ type Repo struct {
 	modTimes map[string]time.Time
 }
 
-func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64) {
+func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64, semaphore chan struct{}) {
 	for {
 		// To always sleep even if we got an error
 		func() {
+			semaphore <- struct{}{}
+			defer func() { <-semaphore }()
+
 			if !r.changed() {
 				return
 			}
@@ -86,7 +89,7 @@ func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(time.Duration(rand.Int64N(scrapeIntervalSeconds)+scrapeIntervalSeconds) * time.Second):
+		case <-time.After(time.Duration(scrapeIntervalSeconds)):
 
 		}
 	}
@@ -145,6 +148,7 @@ func (r *Repo) exec(args ...string) ([]byte, error) {
 	cmd.Args = append(cmd.Args, args...)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "RESTIC_PASSWORD="+r.Password)
+	cmd.Env = append(cmd.Env, fmt.Sprintf("GOMAXPROCS=%d", runtime.NumCPU()/4)) // One Restic Procress should only take 25% of the CPU
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
