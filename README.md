@@ -20,6 +20,16 @@ go install github.com/worty/restic-repo-exporter/cmd/restic-repo-exporter@latest
 CGO_ENABLED='0' go build -o ./output/restic-repo-exporter ./cmd/restic-repo-exporter
 ```
 
+## Configuration
+
+### Environment Variables
+
+`MAX_SIMULTANEOUS_RESTIC_PROCESSES` Number of simultaneous restic processes used for scraping repos
+
+`RESTIC_PASSWORD_$REPO` Can be used to pass diffrent passwords to repos. $REPO is the name of the repo directory.
+
+`CHECK_WITHOUT_CACHE` dont use the persistent cache for the check operation but instead use a temporary one. See [Restic docs for caching](https://restic.readthedocs.io/en/latest/manual_rest.html#caching)
+
 ## Metrics
 
 ```

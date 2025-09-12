@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"strconv"
 	"sync"
 	"time"
 
@@ -150,6 +151,16 @@ func NewExporter(ctx context.Context, path string, scrapeIntervalSeconds int64) 
 }
 
 func (e *Exporter) Scan(ctx context.Context) error {
+	worker := 3
+	if max := os.Getenv("MAX_SIMULTANEOUS_RESTIC_PROCESSES"); max != "" {
+		x, err := strconv.ParseInt(max, 10, 64)
+		if err != nil {
+			log.Fatalf("MAX_SIMULTANEOUS_RESTIC_PROCESSES is not valid: %v", err)
+		}
+		worker = int(x)
+	}
+
+	maxSimltaneousResticProcessesSemaphore := make(chan struct{}, worker)
 	for {
 		fs.WalkDir(os.DirFS(e.repoPath), ".", func(dirPath string, dir fs.DirEntry, err error) error {
 			if err := ctx.Err(); err != nil {
@@ -179,13 +190,17 @@ func (e *Exporter) Scan(ctx context.Context) error {
 				Repository: path.Join(e.repoPath, dirPath),
 				Password:   pw,
 			}
+
 			log.Printf("Found new repo: %s", dir.Name())
+
 			if _, err := repo.Config(); err != nil { // calling config is fast, the result will be discarded anyway
 				log.Printf("Error reading repo %s: %v", dirPath, err)
 				return fs.SkipDir
 			}
-			go repo.Scrape(ctx, e.scrapeIntervalSeconds)
+
+			go repo.Scrape(ctx, e.scrapeIntervalSeconds, maxSimltaneousResticProcessesSemaphore)
 			e.repos.Store(dirPath, repo)
+
 			return fs.SkipDir
 		})
 
