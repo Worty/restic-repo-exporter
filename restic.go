@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand/v2"
 	"os"
 	"os/exec"
 	"runtime"
@@ -89,7 +90,7 @@ func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64, semaphor
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(time.Duration(scrapeIntervalSeconds)):
+		case <-time.After(time.Duration(rand.Int64N(scrapeIntervalSeconds)+scrapeIntervalSeconds) * time.Second):
 
 		}
 	}
