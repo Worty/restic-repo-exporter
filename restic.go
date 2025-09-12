@@ -253,7 +253,14 @@ type CheckResult struct {
 }
 
 func (r *Repo) Check() (cr CheckResult, err error) {
-	o, err := r.exec("check")
+	// From https://restic.readthedocs.io/en/latest/045_working_with_repos.html : "To reuse the existing cache, you can use the --with-cache flag"
+	// Can be disabled with this env flag
+	args := []string{"check"}
+	if os.Getenv("CHECK_WITHOUT_CACHE") == "" {
+		args = append(args, "--with-cache")
+	}
+
+	o, err := r.exec(args...)
 	if err != nil {
 		return CheckResult{}, err
 	}
