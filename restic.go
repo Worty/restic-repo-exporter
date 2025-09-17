@@ -39,6 +39,8 @@ func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64, semaphor
 			if config, err := r.Config(); err == nil {
 				repoVersion.WithLabelValues(r.Name).Set(float64(config.Version))
 			} else {
+				// If we cant read the config the repo is most likely deleted, dont export metrics anymore
+				repoVersion.DeleteLabelValues(r.Name)
 				scrapeErr.WithLabelValues(r.Name, "config").Inc()
 			}
 			timer.ObserveDuration()
@@ -49,40 +51,53 @@ func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64, semaphor
 				suggestPrune.WithLabelValues(r.Name).Set(boolToFloat(check.SuggestPrune))
 				suggestRepairIndex.WithLabelValues(r.Name).Set(boolToFloat(check.SuggestRepairIndex))
 			} else {
+				numRepoErrors.DeleteLabelValues(r.Name)
+				suggestPrune.DeleteLabelValues(r.Name)
+				suggestRepairIndex.DeleteLabelValues(r.Name)
 				scrapeErr.WithLabelValues(r.Name, "check").Inc()
-				return
 			}
 			timer.ObserveDuration()
 
 			timer = prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "raw-stats"))
-			rawStats, err := r.RawStats(nil)
-			if err != nil {
+			if rawStats, err := r.RawStats(nil); err == nil {
+				totalRepoSize.WithLabelValues(r.Name).Set(float64(rawStats.TotalSize))
+				totalUncompressedSize.WithLabelValues(r.Name).Set(float64(rawStats.TotalUncompressedSize))
+				compressionRatio.WithLabelValues(r.Name).Set(rawStats.CompressionRatio)
+				compressionProgress.WithLabelValues(r.Name).Set(float64(rawStats.CompressionProgress) / 100.0)
+				compressionSpaceSaving.WithLabelValues(r.Name).Set(float64(rawStats.CompressionSpaceSaving) / 100.0)
+				totalBlobCount.WithLabelValues(r.Name).Set(float64(rawStats.TotalBlobCount))
+				totalSnapshotsCount.WithLabelValues(r.Name).Set(float64(rawStats.SnapshotsCount))
+			} else {
+				totalRepoSize.DeleteLabelValues(r.Name)
+				totalUncompressedSize.DeleteLabelValues(r.Name)
+				compressionRatio.DeleteLabelValues(r.Name)
+				compressionProgress.DeleteLabelValues(r.Name)
+				compressionSpaceSaving.DeleteLabelValues(r.Name)
+				totalBlobCount.DeleteLabelValues(r.Name)
+				totalSnapshotsCount.DeleteLabelValues(r.Name)
 				scrapeErr.WithLabelValues(r.Name, "raw-stats").Inc()
-				return
 			}
-			totalRepoSize.WithLabelValues(r.Name).Set(float64(rawStats.TotalSize))
-			totalUncompressedSize.WithLabelValues(r.Name).Set(float64(rawStats.TotalUncompressedSize))
-			compressionRatio.WithLabelValues(r.Name).Set(rawStats.CompressionRatio)
-			compressionProgress.WithLabelValues(r.Name).Set(float64(rawStats.CompressionProgress) / 100.0)
-			compressionSpaceSaving.WithLabelValues(r.Name).Set(float64(rawStats.CompressionSpaceSaving) / 100.0)
-			totalBlobCount.WithLabelValues(r.Name).Set(float64(rawStats.TotalBlobCount))
-			totalSnapshotsCount.WithLabelValues(r.Name).Set(float64(rawStats.SnapshotsCount))
 			timer.ObserveDuration()
 
 			timer = prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "snapshots"))
-			groups, err := r.Snapshots("host,tags")
-			if err != nil {
-				scrapeErr.WithLabelValues(r.Name, "snapshots").Inc()
-				return
-			}
-			for _, group := range groups {
-				tags := strings.Join(group.GroupKey.Tags, "_")
-				numSnapshots.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set(float64(len(group.Snapshots)))
-				if len(group.Snapshots) > 0 {
-					lastSnapshot := group.Snapshots[0]
-					lastSnapshotTimestamp.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set(float64(lastSnapshot.Time.Unix()))
-					lastSnapshotCreationDuration.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set((lastSnapshot.Summary.BackupEnd.Sub(lastSnapshot.Summary.BackupStart)).Seconds())
+			if groups, err := r.Snapshots("host,tags"); err == nil {
+				// Delete all labeled Metrics to ensure that if the last snapshot is deleted,
+				// there is no stale metric
+				numSnapshots.DeletePartialMatch(prometheus.Labels{"repo": r.Name})
+				lastSnapshotTimestamp.DeletePartialMatch(prometheus.Labels{"repo": r.Name})
+				lastSnapshotCreationDuration.DeletePartialMatch(prometheus.Labels{"repo": r.Name})
+
+				for _, group := range groups {
+					tags := strings.Join(group.GroupKey.Tags, "_")
+					numSnapshots.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set(float64(len(group.Snapshots)))
+					if len(group.Snapshots) > 0 {
+						lastSnapshot := group.Snapshots[0]
+						lastSnapshotTimestamp.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set(float64(lastSnapshot.Time.Unix()))
+						lastSnapshotCreationDuration.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set((lastSnapshot.Summary.BackupEnd.Sub(lastSnapshot.Summary.BackupStart)).Seconds())
+					}
 				}
+			} else {
+				scrapeErr.WithLabelValues(r.Name, "snapshots").Inc()
 			}
 			timer.ObserveDuration()
 		}()
