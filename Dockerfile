@@ -9,7 +9,7 @@ COPY ./cmd/ ./cmd/
 
 RUN go build -o restic-repo-exporter ./cmd/restic-repo-exporter
 
-FROM debian:trixie-slim@sha256:c2880112cc5c61e1200c26f106e4123627b49726375eb5846313da9cca117337
+FROM debian:trixie-slim@sha256:1caf1c703c8f7e15dcf2e7769b35000c764e6f50e4d7401c355fb0248f3ddfdb
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates bzip2 curl && \
     rm -rf /var/lib/apt/lists/*
