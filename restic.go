@@ -80,13 +80,12 @@ func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64, semaphor
 			timer.ObserveDuration()
 
 			timer = prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "snapshots"))
-			if groups, err := r.Snapshots("host,tags"); err == nil {
-				// Delete all labeled Metrics to ensure that if the last snapshot is deleted,
-				// there is no stale metric
-				numSnapshots.DeletePartialMatch(prometheus.Labels{"repo": r.Name})
-				lastSnapshotTimestamp.DeletePartialMatch(prometheus.Labels{"repo": r.Name})
-				lastSnapshotCreationDuration.DeletePartialMatch(prometheus.Labels{"repo": r.Name})
-
+			groups, err := r.Snapshots("host,tags")
+			// To ensure that there are no stale metrics, delete all snapshots metrics for that repository.
+			numSnapshots.DeletePartialMatch(prometheus.Labels{"repo": r.Name})
+			lastSnapshotTimestamp.DeletePartialMatch(prometheus.Labels{"repo": r.Name})
+			lastSnapshotCreationDuration.DeletePartialMatch(prometheus.Labels{"repo": r.Name})
+			if err == nil {
 				for _, group := range groups {
 					tags := strings.Join(group.GroupKey.Tags, "_")
 					numSnapshots.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set(float64(len(group.Snapshots)))
