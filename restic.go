@@ -155,7 +155,7 @@ func (r *Repo) RawStats(tags []string) (stats rawDataStats, err error) {
 	if err != nil {
 		return rawDataStats{}, fmt.Errorf("error executing stats command: %w", err)
 	}
-	return stats, json.Unmarshal(o, &stats)
+	return stats, unmarshal(o, &stats)
 }
 
 func (r *Repo) exec(args ...string) ([]byte, error) {
@@ -254,7 +254,7 @@ func (r *Repo) Snapshots(groupBy string) (gr []GroupedSnapshot, err error) {
 		return []GroupedSnapshot{}, err
 	}
 
-	if err := json.Unmarshal(output, &gr); err != nil {
+	if err := unmarshal(output, &gr); err != nil {
 		return gr, err
 	}
 
@@ -284,7 +284,7 @@ func (r *Repo) Check() (cr CheckResult, err error) {
 		return CheckResult{}, err
 	}
 
-	return cr, json.Unmarshal(o, &cr)
+	return cr, unmarshal(o, &cr)
 }
 
 type ConfigResult struct {
@@ -299,7 +299,7 @@ func (r *Repo) Config() (cr ConfigResult, err error) {
 		return ConfigResult{}, err
 	}
 
-	return cr, json.Unmarshal(o, &cr)
+	return cr, unmarshal(o, &cr)
 }
 
 func boolToFloat(b bool) float64 {
@@ -307,4 +307,18 @@ func boolToFloat(b bool) float64 {
 		return 1.0
 	}
 	return 0.0
+}
+
+// parse json even if it contains other non json stuff
+func unmarshal(input []byte, v any) error {
+	for i := range input {
+		if input[i] != '{' && input[i] != '[' {
+			continue
+		}
+
+		if err := json.Unmarshal(input[i:], v); err == nil {
+			return nil
+		}
+	}
+	return fmt.Errorf("no valid JSON found")
 }
