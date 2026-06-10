@@ -14,7 +14,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates bzip2 curl && \
     rm -rf /var/lib/apt/lists/*
 
-RUN curl -sSL https://github.com/restic/restic/releases/download/v0.18.0/restic_0.18.0_linux_amd64.bz2 | bunzip2 > /usr/local/bin/restic && \
+RUN curl -sSL https://github.com/restic/restic/releases/download/v0.19.0/restic_0.19.0_linux_amd64.bz2 | bunzip2 > /usr/local/bin/restic && \
     chmod +x /usr/local/bin/restic && \
     restic version && \
     restic self-update && \
