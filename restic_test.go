@@ -172,3 +172,46 @@ func TestRepoLocked(t *testing.T) {
 		t.Fatalf("Expected check status to be locked, got no error")
 	}
 }
+
+func TestUnmarshal(t *testing.T) {
+	tests := []struct {
+		input string
+		want  any
+	}{
+		{
+			input: `[{"time":"2025-07-02T19:46:45.543749354+02:00"}]`,
+			want:  []any{map[string]any{"time": "2025-07-02T19:46:45.543749354+02:00"}},
+		},
+		{
+			input: `test with normal text
+			{"a":"b"} `,
+			want: map[string]any{"a": "b"},
+		},
+		{
+			input: `{test with text in curly braces}
+			{"a":"b"} `,
+			want: map[string]any{"a": "b"},
+		},
+		{
+			input: `[15:42] hello
+			{"a":"b"} `,
+			want: map[string]any{"a": "b"},
+		},
+		{
+			input: `[15:42] hello
+			[{"a":"b"}]`,
+			want: []any{map[string]any{"a": "b"}},
+		},
+	}
+
+	for _, tt := range tests {
+		var got any
+		if err := unmarshal([]byte(tt.input), &got); err != nil {
+			t.Error(err)
+		}
+
+		if diff := cmp.Diff(tt.want, got); diff != "" {
+			t.Errorf("mismatch (-want +got):\n%s", diff)
+		}
+	}
+}
