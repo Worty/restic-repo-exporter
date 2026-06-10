@@ -1,6 +1,8 @@
 package resticrepoexporter
 
 import (
+	"os"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -171,6 +173,25 @@ func TestRepoLocked(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Expected check status to be locked, got no error")
 	}
+}
+
+func TestMain(m *testing.M) {
+	trackResticBinary()
+	os.Exit(m.Run())
+}
+
+// To include the restic binary to Go's Testcache
+func trackResticBinary() {
+	path, err := exec.LookPath("restic")
+	if err != nil {
+		panic(err)
+	}
+
+	f, err := os.Open(path)
+	if err != nil {
+		panic(err)
+	}
+	f.Close()
 }
 
 func TestUnmarshal(t *testing.T) {
