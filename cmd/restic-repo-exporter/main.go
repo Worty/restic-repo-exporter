@@ -27,7 +27,11 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, os.Kill)
 	defer cancel()
 
-	resticrepoexporter.NewExporter(ctx, *repoPath, *scrapeInterval)
+	exp := &resticrepoexporter.Exporter{
+		Path:                  *repoPath,
+		ScrapeIntervalSeconds: *scrapeInterval,
+	}
+	go exp.Scan(ctx)
 
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
