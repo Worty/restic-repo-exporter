@@ -24,7 +24,7 @@ type Repo struct {
 	modTimes map[string]time.Time
 }
 
-func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64, semaphore chan struct{}) {
+func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64, semaphore chan struct{}, skipCheck bool) {
 	for {
 		// To always sleep even if we got an error
 		func() {
@@ -45,18 +45,20 @@ func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64, semaphor
 			}
 			timer.ObserveDuration()
 
-			timer = prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "check"))
-			if check, err := r.Check(); err == nil {
-				numRepoErrors.WithLabelValues(r.Name).Set(float64(check.NumErrors))
-				suggestPrune.WithLabelValues(r.Name).Set(boolToFloat(check.SuggestPrune))
-				suggestRepairIndex.WithLabelValues(r.Name).Set(boolToFloat(check.SuggestRepairIndex))
-			} else {
-				numRepoErrors.DeleteLabelValues(r.Name)
-				suggestPrune.DeleteLabelValues(r.Name)
-				suggestRepairIndex.DeleteLabelValues(r.Name)
-				scrapeErr.WithLabelValues(r.Name, "check").Inc()
+			if !skipCheck {
+				timer = prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "check"))
+				if check, err := r.Check(); err == nil {
+					numRepoErrors.WithLabelValues(r.Name).Set(float64(check.NumErrors))
+					suggestPrune.WithLabelValues(r.Name).Set(boolToFloat(check.SuggestPrune))
+					suggestRepairIndex.WithLabelValues(r.Name).Set(boolToFloat(check.SuggestRepairIndex))
+				} else {
+					numRepoErrors.DeleteLabelValues(r.Name)
+					suggestPrune.DeleteLabelValues(r.Name)
+					suggestRepairIndex.DeleteLabelValues(r.Name)
+					scrapeErr.WithLabelValues(r.Name, "check").Inc()
+				}
+				timer.ObserveDuration()
 			}
-			timer.ObserveDuration()
 
 			timer = prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "raw-stats"))
 			if rawStats, err := r.RawStats(nil); err == nil {
