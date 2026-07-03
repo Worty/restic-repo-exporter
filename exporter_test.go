@@ -11,8 +11,8 @@ import (
 
 func TestMetrics(t *testing.T) {
 	exporter := Exporter{
-		repoPath:              "testdata",
-		scrapeIntervalSeconds: 1,
+		Path:                  "testdata",
+		ScrapeIntervalSeconds: 1,
 	}
 
 	os.Setenv("RESTIC_PASSWORD_locked-repo", "abc123")

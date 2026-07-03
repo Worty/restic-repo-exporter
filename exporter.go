@@ -134,20 +134,9 @@ var (
 )
 
 type Exporter struct {
-	repoPath              string
-	scrapeIntervalSeconds int64
-	repos                 sync.Map // map[string]*Repo
-}
-
-func NewExporter(ctx context.Context, path string, scrapeIntervalSeconds int64) *Exporter {
-	exp := Exporter{
-		repoPath:              path,
-		scrapeIntervalSeconds: scrapeIntervalSeconds,
-	}
-
-	go exp.Scan(ctx)
-
-	return &exp
+	Path                  string
+	ScrapeIntervalSeconds int64
+	repos                 sync.Map
 }
 
 func (e *Exporter) Scan(ctx context.Context) error {
@@ -162,7 +151,7 @@ func (e *Exporter) Scan(ctx context.Context) error {
 
 	maxSimltaneousResticProcessesSemaphore := make(chan struct{}, worker)
 	for {
-		fs.WalkDir(os.DirFS(e.repoPath), ".", func(dirPath string, dir fs.DirEntry, err error) error {
+		fs.WalkDir(os.DirFS(e.Path), ".", func(dirPath string, dir fs.DirEntry, err error) error {
 			if err := ctx.Err(); err != nil {
 				return fs.SkipAll
 			}
@@ -177,7 +166,7 @@ func (e *Exporter) Scan(ctx context.Context) error {
 				return fs.SkipDir
 			}
 
-			if _, err := os.Stat(path.Join(e.repoPath, dirPath, "config")); os.IsNotExist(err) {
+			if _, err := os.Stat(path.Join(e.Path, dirPath, "config")); os.IsNotExist(err) {
 				return nil
 			}
 
@@ -187,7 +176,7 @@ func (e *Exporter) Scan(ctx context.Context) error {
 			}
 			repo := &Repo{
 				Name:       dir.Name(),
-				Repository: path.Join(e.repoPath, dirPath),
+				Repository: path.Join(e.Path, dirPath),
 				Password:   pw,
 			}
 
@@ -198,7 +187,7 @@ func (e *Exporter) Scan(ctx context.Context) error {
 				return fs.SkipDir
 			}
 
-			go repo.Scrape(ctx, e.scrapeIntervalSeconds, maxSimltaneousResticProcessesSemaphore)
+			go repo.Scrape(ctx, e.ScrapeIntervalSeconds, maxSimltaneousResticProcessesSemaphore)
 			e.repos.Store(dirPath, repo)
 
 			return fs.SkipDir
