@@ -19,6 +19,7 @@ func main() {
 	repoPath := flag.String("repo-path", "", "Path to a directory containing restic repositories (or in its subfolders).")
 	scrapeInterval := flag.Int64("scrape-interval", 30, "Base scrape interval in seconds. A random interval of the same amount will be added on top.")
 	skipChecks := flag.Bool("skip-checks", false, "Skip restic checks for all repos to speed up scraping.")
+	checkWithCache := flag.Bool("check-with-cache", false, "By default, checks create a new temporary cache directory to verify that the data stored in the repository is intact. Set this the reuse the existing cache. This is useful for repos from slow sources.")
 	flag.Parse()
 
 	if *repoPath == "" {
@@ -32,6 +33,7 @@ func main() {
 		Path:                  *repoPath,
 		ScrapeIntervalSeconds: *scrapeInterval,
 		SkipChecks:            *skipChecks,
+		CheckWithCache:        *checkWithCache,
 	}
 	go exp.Scan(ctx)
 

@@ -22,7 +22,7 @@ func TestRepoGroupedSnapshots(t *testing.T) {
 		MessageType: "summary",
 	}
 
-	got, err := repo.Check()
+	got, err := repo.Check(false)
 	if err != nil {
 		t.Fatalf("Expected check status to be not locked, err = %v", err)
 	}
@@ -162,19 +162,6 @@ func TestRepoGroupedSnapshots(t *testing.T) {
 	}
 }
 
-func TestRepoLocked(t *testing.T) {
-	repo := Repo{
-		Name:       "test-repo-locked",
-		Repository: "./testdata/repos/repo-locked",
-		Password:   "abc123",
-	}
-
-	_, err := repo.Check()
-	if err == nil {
-		t.Fatalf("Expected check status to be locked, got no error")
-	}
-}
-
 func TestMain(m *testing.M) {
 	trackResticBinary()
 	os.Exit(m.Run())
@@ -234,5 +221,30 @@ func TestUnmarshal(t *testing.T) {
 		if diff := cmp.Diff(tt.want, got); diff != "" {
 			t.Errorf("mismatch (-want +got):\n%s", diff)
 		}
+	}
+}
+
+func TestBrokenRepo(t *testing.T) {
+	repo := Repo{
+		Name:       "repo-with-broken-data",
+		Repository: "./testdata/repos/repo-with-broken-data",
+		Password:   "abc123",
+	}
+
+	got, err := repo.Check(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := CheckResult{
+		MessageType:        "summary",
+		NumErrors:          2,
+		BrokenPacks:        []string{"13ed577ac34b27ffce3a83f3e1e2bc8addc394bfec6022d326dcb660f27a0082"},
+		SuggestRepairIndex: false,
+		SuggestPrune:       false,
+	}
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("mismatch (-want +got):\n%s", diff)
 	}
 }

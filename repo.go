@@ -1,6 +1,7 @@
 package resticrepoexporter
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -24,7 +25,7 @@ type Repo struct {
 	modTimes map[string]time.Time
 }
 
-func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64, semaphore chan struct{}, skipCheck bool) {
+func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64, semaphore chan struct{}, skipCheck bool, checkWithCache bool) {
 	for {
 		// To always sleep even if we got an error
 		func() {
@@ -47,7 +48,7 @@ func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64, semaphor
 
 			if !skipCheck {
 				timer = prometheus.NewTimer(scrapeDuration.WithLabelValues(r.Name, "check"))
-				if check, err := r.Check(); err == nil {
+				if check, err := r.Check(checkWithCache); err == nil {
 					numRepoErrors.WithLabelValues(r.Name).Set(float64(check.NumErrors))
 					suggestPrune.WithLabelValues(r.Name).Set(boolToFloat(check.SuggestPrune))
 					suggestRepairIndex.WithLabelValues(r.Name).Set(boolToFloat(check.SuggestRepairIndex))
@@ -273,20 +274,35 @@ type CheckResult struct {
 	SuggestPrune       bool     `json:"suggest_prune"`
 }
 
-func (r *Repo) Check() (cr CheckResult, err error) {
+func (r *Repo) Check(withCache bool) (cr CheckResult, err error) {
 	// From https://restic.readthedocs.io/en/latest/045_working_with_repos.html : "To reuse the existing cache, you can use the --with-cache flag"
-	// Can be disabled with this env flag
 	args := []string{"check"}
-	if os.Getenv("CHECK_WITHOUT_CACHE") == "" {
+	if withCache {
 		args = append(args, "--with-cache")
 	}
 
 	o, err := r.exec(args...)
-	if err != nil {
-		return CheckResult{}, err
+	if err == nil {
+		return cr, unmarshal(o, &cr)
 	}
 
-	return cr, unmarshal(o, &cr)
+	// Exit-Code 0 is the happy path, any other exit codes can print a json objects per line so search for summary object
+	scanner := bufio.NewScanner(strings.NewReader(err.Error()))
+	for scanner.Scan() {
+		var msg struct {
+			MessageType string `json:"message_type"`
+		}
+
+		line := scanner.Bytes()
+		unmarshal(line, &msg)
+
+		if msg.MessageType == "summary" {
+			return cr, unmarshal(line, &cr)
+		}
+
+	}
+
+	return CheckResult{}, fmt.Errorf("Check failed and no summary object in output: %w", err)
 }
 
 type ConfigResult struct {
