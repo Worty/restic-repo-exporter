@@ -137,6 +137,7 @@ type Exporter struct {
 	Path                  string
 	ScrapeIntervalSeconds int64
 	SkipChecks            bool
+	CheckWithCache        bool
 
 	repos sync.Map
 }
@@ -189,7 +190,7 @@ func (e *Exporter) Scan(ctx context.Context) error {
 				return fs.SkipDir
 			}
 
-			go repo.Scrape(ctx, e.ScrapeIntervalSeconds, maxSimltaneousResticProcessesSemaphore, e.SkipChecks)
+			go repo.Scrape(ctx, e.ScrapeIntervalSeconds, maxSimltaneousResticProcessesSemaphore, e.SkipChecks, e.CheckWithCache)
 			e.repos.Store(dirPath, repo)
 
 			return fs.SkipDir
