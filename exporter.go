@@ -75,6 +75,13 @@ var (
 		},
 		[]string{"repo"},
 	)
+	numBrokenPacks = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: prometheus.BuildFQName("restic", "repo", "num_broken_packs"),
+			Help: "Number of packs reported by restic to be broken ",
+		},
+		[]string{"repo"},
+	)
 	repoVersion = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: prometheus.BuildFQName("restic", "repo", "version"),
