@@ -52,10 +52,12 @@ func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64, semaphor
 					numRepoErrors.WithLabelValues(r.Name).Set(float64(check.NumErrors))
 					suggestPrune.WithLabelValues(r.Name).Set(boolToFloat(check.SuggestPrune))
 					suggestRepairIndex.WithLabelValues(r.Name).Set(boolToFloat(check.SuggestRepairIndex))
+					numBrokenPacks.WithLabelValues(r.Name).Set(float64(len(check.BrokenPacks)))
 				} else {
 					numRepoErrors.DeleteLabelValues(r.Name)
 					suggestPrune.DeleteLabelValues(r.Name)
 					suggestRepairIndex.DeleteLabelValues(r.Name)
+					numBrokenPacks.DeleteLabelValues(r.Name)
 					scrapeErr.WithLabelValues(r.Name, "check").Inc()
 				}
 				timer.ObserveDuration()
