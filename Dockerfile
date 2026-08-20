@@ -1,4 +1,4 @@
-FROM golang:1.26-trixie@sha256:b389f1219965d8ba67776b81d17308ab25fa763be3855e5fe63ebcb10e15f3a1 AS builder
+FROM golang:1.27-trixie@sha256:6212da3924947f4b6a939df02ea627c13f338f1a41d6c3fcb0dd9d076eef46c4 AS builder
 ENV CGO_ENABLED=0
 WORKDIR /app
 
