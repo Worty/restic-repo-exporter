@@ -17,6 +17,7 @@ func TestMetrics(t *testing.T) {
 
 	os.Setenv("RESTIC_PASSWORD_locked-repo", "abc123")
 	os.Setenv("RESTIC_PASSWORD_repo-with-tags", "abc123")
+	os.Setenv("RESTIC_PASSWORD_repo-with-broken-data", "abc123")
 
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
