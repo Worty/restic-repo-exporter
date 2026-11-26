@@ -25,7 +25,7 @@ type Repo struct {
 	modTimes map[string]time.Time
 }
 
-func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64, semaphore chan struct{}, skipCheck bool, checkWithCache bool) {
+func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64, semaphore chan struct{}, skipCheck bool, checkWithCache bool, stripTags []string) {
 	for {
 		// To always sleep even if we got an error
 		func() {
@@ -91,7 +91,7 @@ func (r *Repo) Scrape(ctx context.Context, scrapeIntervalSeconds int64, semaphor
 			lastSnapshotTimestamp.DeletePartialMatch(prometheus.Labels{"repo": r.Name})
 			lastSnapshotCreationDuration.DeletePartialMatch(prometheus.Labels{"repo": r.Name})
 			if err == nil {
-				for _, group := range groups {
+				for _, group := range regroupByTags(groups, stripTags) {
 					tags := strings.Join(group.GroupKey.Tags, "_")
 					numSnapshots.WithLabelValues(r.Name, group.GroupKey.Hostname, tags).Set(float64(len(group.Snapshots)))
 					if len(group.Snapshots) > 0 {
@@ -212,6 +212,70 @@ func SortGroupedSnapshots(groups []GroupedSnapshot) {
 		}
 		return 0
 	})
+}
+
+// filterTags returns the tags that are not in stripTags.
+func filterTags(tags []string, stripTags []string) []string {
+	if len(stripTags) == 0 {
+		return tags
+	}
+
+	filtered := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		if !slices.Contains(stripTags, tag) {
+			filtered = append(filtered, tag)
+		}
+	}
+	return filtered
+}
+
+// snapshotGroupKey identifies the reported label of a snapshot group: the
+// hostname and the tags joined with "_". Groups with the same key are
+// reported as the same metric series, so they are merged.
+type snapshotGroupKey struct {
+	hostname string
+	tags     string
+}
+
+// regroupByTags removes the stripped tags from the group keys, so they are not
+// reported in the metrics. The snapshots themselves are still reported: groups
+// that only differ by stripped tags are merged, so their snapshots are counted
+// under the same tag label. Snapshots whose tags are all stripped are reported
+// with an empty tag label.
+//
+// The given groups are treated as scratch data: their snapshot slices may be
+// sorted or extended in place.
+func regroupByTags(groups []GroupedSnapshot, stripTags []string) []GroupedSnapshot {
+	if len(stripTags) == 0 {
+		return groups
+	}
+
+	merged := make(map[snapshotGroupKey]*GroupedSnapshot, len(groups))
+	var order []snapshotGroupKey
+	for i := range groups {
+		tags := filterTags(groups[i].GroupKey.Tags, stripTags)
+		key := snapshotGroupKey{
+			hostname: groups[i].GroupKey.Hostname,
+			tags:     strings.Join(tags, "_"),
+		}
+		if group, ok := merged[key]; ok {
+			group.Snapshots = append(group.Snapshots, groups[i].Snapshots...)
+			continue
+		}
+		merged[key] = &GroupedSnapshot{
+			GroupKey:  GroupKey{Hostname: groups[i].GroupKey.Hostname, Tags: tags},
+			Snapshots: groups[i].Snapshots,
+		}
+		order = append(order, key)
+	}
+
+	regrouped := make([]GroupedSnapshot, 0, len(merged))
+	for _, key := range order {
+		regrouped = append(regrouped, *merged[key])
+	}
+
+	SortGroupedSnapshots(regrouped)
+	return regrouped
 }
 
 type GroupKey struct {
