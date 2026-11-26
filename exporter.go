@@ -145,6 +145,9 @@ type Exporter struct {
 	ScrapeIntervalSeconds int64
 	SkipChecks            bool
 	CheckWithCache        bool
+	// Tags that are stripped from the reported metrics. The snapshots themselves
+	// are still reported, only the stripped tags are not included in the tag label.
+	StripTags []string
 
 	repos sync.Map
 }
@@ -197,7 +200,7 @@ func (e *Exporter) Scan(ctx context.Context) error {
 				return fs.SkipDir
 			}
 
-			go repo.Scrape(ctx, e.ScrapeIntervalSeconds, maxSimltaneousResticProcessesSemaphore, e.SkipChecks, e.CheckWithCache)
+			go repo.Scrape(ctx, e.ScrapeIntervalSeconds, maxSimltaneousResticProcessesSemaphore, e.SkipChecks, e.CheckWithCache, e.StripTags)
 			e.repos.Store(dirPath, repo)
 
 			return fs.SkipDir

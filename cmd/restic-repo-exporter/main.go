@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -20,10 +21,18 @@ func main() {
 	scrapeInterval := flag.Int64("scrape-interval", 30, "Base scrape interval in seconds. A random interval of the same amount will be added on top.")
 	skipChecks := flag.Bool("skip-checks", false, "Skip restic checks for all repos to speed up scraping.")
 	checkWithCache := flag.Bool("check-with-cache", false, "By default, checks create a new temporary cache directory to verify that the data stored in the repository is intact. Set this the reuse the existing cache. This is useful for repos from slow sources.")
+	stripTags := flag.String("strip-tags", "", "Comma separated list of tags to strip from the reported metrics. The snapshots themselves are still reported, only the stripped tags are removed from the tag label.")
 	flag.Parse()
 
 	if *repoPath == "" {
 		log.Fatal("repo-path must be specified")
+	}
+
+	var stripTagsList []string
+	for _, tag := range strings.Split(*stripTags, ",") {
+		if tag = strings.TrimSpace(tag); tag != "" {
+			stripTagsList = append(stripTagsList, tag)
+		}
 	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, os.Kill)
@@ -34,6 +43,7 @@ func main() {
 		ScrapeIntervalSeconds: *scrapeInterval,
 		SkipChecks:            *skipChecks,
 		CheckWithCache:        *checkWithCache,
+		StripTags:             stripTagsList,
 	}
 	go exp.Scan(ctx)
 

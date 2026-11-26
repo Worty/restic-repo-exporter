@@ -40,7 +40,7 @@ func TestRepoGroupedSnapshots(t *testing.T) {
 		{
 			GroupKey: GroupKey{
 				Hostname: "test-host",
-				Tags:     []string{"test-tag"},
+				Tags:     []string{"dont-prune", "test-tag"},
 			},
 			Snapshots: []Snapshot{
 				{
@@ -51,7 +51,7 @@ func TestRepoGroupedSnapshots(t *testing.T) {
 					Username:       "worty",
 					UID:            1000,
 					GID:            1000,
-					Tags:           []string{"test-tag"},
+					Tags:           []string{"dont-prune", "test-tag"},
 					ProgramVersion: "restic 0.18.0",
 					Summary: Summary{
 						BackupStart:         time.Date(2025, 7, 2, 19, 46, 45, 543749354, testLoc),
@@ -64,8 +64,8 @@ func TestRepoGroupedSnapshots(t *testing.T) {
 						TotalFilesProcessed: 1,
 						TotalBytesProcessed: 56,
 					},
-					ID:      "49053231c3f32332fed6144226222c724693def1bdbf34a60dab00e0715ad3c5",
-					ShortID: "49053231",
+					ID:      "25cee5ee8b4bb027fe8ea9936d1ded8ef87b71b72f9a3dd3cd181a1ddbee9c8c",
+					ShortID: "25cee5ee",
 				},
 			},
 		},
@@ -159,6 +159,94 @@ func TestRepoGroupedSnapshots(t *testing.T) {
 
 	if diff := cmp.Diff(gotConfig, wantConfig); diff != "" {
 		t.Errorf("repo config mismatch (-got +want):\n%s", diff)
+	}
+}
+
+func TestRegroupByTags(t *testing.T) {
+	t1 := time.Date(2025, 7, 2, 19, 46, 45, 0, testLoc)
+	t2 := time.Date(2025, 7, 2, 19, 46, 50, 0, testLoc)
+	t3 := time.Date(2025, 7, 2, 19, 46, 55, 0, testLoc)
+
+	// regroupByTags treats the given groups as scratch data and may mutate
+	// their snapshot slices, so each test case gets a fresh copy of the fixture.
+	fixture := func() []GroupedSnapshot {
+		return []GroupedSnapshot{
+			{
+				GroupKey:  GroupKey{Hostname: "host1", Tags: []string{"mysql", "dont-prune"}},
+				Snapshots: []Snapshot{{Time: t1}, {Time: t2}},
+			},
+			{
+				GroupKey:  GroupKey{Hostname: "host1", Tags: []string{"mysql"}},
+				Snapshots: []Snapshot{{Time: t3}},
+			},
+			{
+				// Only tags that will be stripped: must still be reported, with an
+				// empty tag label, and merged with the untagged host1 snapshots.
+				GroupKey:  GroupKey{Hostname: "host1", Tags: []string{"dont-prune"}},
+				Snapshots: []Snapshot{{Time: t1}},
+			},
+			{
+				GroupKey:  GroupKey{Hostname: "host1"},
+				Snapshots: []Snapshot{{Time: t3}},
+			},
+			{
+				GroupKey:  GroupKey{Hostname: "host2", Tags: []string{"dont-prune", "mysql"}},
+				Snapshots: []Snapshot{{Time: t2}},
+			},
+		}
+	}
+
+	tests := []struct {
+		name      string
+		stripTags []string
+		want      []GroupedSnapshot
+	}{
+		{
+			name:      "no stripped tags",
+			stripTags: nil,
+			want:      fixture(),
+		},
+		{
+			name:      "dont-prune is stripped",
+			stripTags: []string{"dont-prune"},
+			want: []GroupedSnapshot{
+				{
+					GroupKey:  GroupKey{Hostname: "host1", Tags: []string{"mysql"}},
+					Snapshots: []Snapshot{{Time: t3}, {Time: t2}, {Time: t1}},
+				},
+				{
+					GroupKey:  GroupKey{Hostname: "host1", Tags: []string{}},
+					Snapshots: []Snapshot{{Time: t3}, {Time: t1}},
+				},
+				{
+					GroupKey:  GroupKey{Hostname: "host2", Tags: []string{"mysql"}},
+					Snapshots: []Snapshot{{Time: t2}},
+				},
+			},
+		},
+		{
+			name:      "all tags are stripped",
+			stripTags: []string{"dont-prune", "mysql"},
+			want: []GroupedSnapshot{
+				{
+					GroupKey:  GroupKey{Hostname: "host1", Tags: []string{}},
+					Snapshots: []Snapshot{{Time: t3}, {Time: t3}, {Time: t2}, {Time: t1}, {Time: t1}},
+				},
+				{
+					GroupKey:  GroupKey{Hostname: "host2", Tags: []string{}},
+					Snapshots: []Snapshot{{Time: t2}},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := regroupByTags(fixture(), tt.stripTags)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("RegroupByTags mismatch (-want +got):\n%s", diff)
+			}
+		})
 	}
 }
 
