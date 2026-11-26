@@ -168,7 +168,8 @@ func (r *Repo) exec(args ...string) ([]byte, error) {
 	cmd.Args = append(cmd.Args, args...)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "RESTIC_PASSWORD="+r.Password)
-	cmd.Env = append(cmd.Env, fmt.Sprintf("GOMAXPROCS=%d", runtime.NumCPU()/4)) // One Restic Procress should only take 25% of the CPU
+	// The Go runtime ignores GOMAXPROCS values of 0 or less, so clamp to 1.
+	cmd.Env = append(cmd.Env, fmt.Sprintf("GOMAXPROCS=%d", max(runtime.NumCPU()/4, 1))) // One restic process should only take 25% of the CPU
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
